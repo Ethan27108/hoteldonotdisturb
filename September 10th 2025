@@ -1,25 +1,41 @@
-Notes from session 9/10/2025
+Notes From Session 9/10/2025
 
 
 3 solutions from cheapest to most expensive
 *QRCode
-*Remote Based
-*Touch Screen
+*Remote Based - Uses infrared devices to send messages via buttons.
+*Touch Screen - Microcontroller paired with a touch panel to send messages.
 
 
-Different sections for us three
+Different sections for us three, language that is chosen is python, MYSQL, Flask, and React
 
 Maid app
--back end and front end (front end would be easiet)
+-back end and front end (front end would be easier)
 -can only see the room that is assigned to her and choose to accept
 
+Features
+-
 
 
 just back end, algorithm to assign rooms
--assigning rooms to maids that are not busy or maids that are almost done their rooms. Will calculate the best time to assign the correct maid/
+-assigning rooms to maids that are not busy or maids that are almost done with their rooms. Will calculate the best time to assign the correct maid/
 
 
+
+ADMIN
 Admin view of rooms (mostly frontend)
 -assign maids to floors and to rooms
-view this for example - https://www.youtube.com/watch?v=z8c84q0Vxdk
+-view this for example - https://www.youtube.com/watch?v=z8c84q0Vxdk
+-
+
+Features
+-
+
+
+
+
+What needs to be done for next week
+
+Make a list of what every variables we will need for user/maid/admin for the database
+
 
