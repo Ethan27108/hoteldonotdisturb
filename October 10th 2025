@@ -1,0 +1,24 @@
+Notes from session 9/10/2025
+
+
+3 solutions from cheapest to most expensive
+*QRCode
+*Remote Based
+*Touch Screen
+
+
+Different sections for us three
+
+Maid app
+-back end and front end (front end would be easiet)
+-can only see the room that is assigned to her and choose to accept
+
+
+
+just back end, algorithm to assign rooms
+-assigning rooms to maids that are not busy or maids that are almost done their rooms. Will calculate the best time to assign the correct maid/
+
+
+Admin view of rooms (mostly frontend)
+-assign maids to floors and to rooms
+
