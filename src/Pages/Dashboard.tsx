@@ -1,7 +1,6 @@
 import SwitchButton from 'Components/SwitchButton'
 import React, { useEffect } from 'react'
 import { useState } from 'react';
-import { start } from 'repl';
 
 interface Room {
   roomNum: number;
@@ -42,21 +41,20 @@ const Dashboard = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ username,room }),
+          body: JSON.stringify({ username, room }),
         });
-
-        const data = await response.json();
 
         if (response.ok) {
           console.log(response)
         }
         else {
-          console.error('Failed to fetch rooms');
+          console.error('Failed to start cleaning');
         }
       } catch (error) {
-        console.error('Error fetching rooms:', error);
+        console.error('Error starting cleaning:', error);
       }
   };
+
   const endCleaning = async (username: string | null, room: number) => {
       try {
         const response = await fetch('/api/cleanEnd/', {
@@ -64,58 +62,56 @@ const Dashboard = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ username,room }),
+          body: JSON.stringify({ username, room }),
         });
-
-        const data = await response.json();
 
         if (response.ok) {
           console.log(response)
         }
         else {
-          console.error('Failed to fetch rooms');
+          console.error('Failed to end cleaning');
         }
       } catch (error) {
-        console.error('Error fetching rooms:', error);
+        console.error('Error ending cleaning:', error);
       }
   };
 
   useEffect(() => {
-  const username = localStorage.getItem('username');
-  setUsername(username);
-  console.log(username)
-  fetchRooms(username);
-}, []); // ← Run only once
-
+    const username = localStorage.getItem('username');
+    setUsername(username);
+    console.log(username);
+    fetchRooms(username);
+  }, []); // ← Run only once
 
   return (
-    //When this page gets clicked/refreshed maybe even auto refreshing when an event happens in the database
-    //It will get a list of room assigned to the maid based on their login and then get a list of rooms they need to finish
-    //Use a loop to go through all of those rooms and make a button for each room
     <div>
       Maid Dashboard
-      {rooms.map((room) => (
-        <div>{room.roomNum}
-      <SwitchButton
-      name='Start Room Clean' 
-      secondname='Stop Room Clean'
-      roomNum={room.roomNum} //Will become dynamic based on the room assigned to the maid when they log in
-      onToggle={(on) => {
-        if (on) {
-          startCleaning(username, room.roomNum);
-        console.log("Send the current time to the database for the starting room clean in the logs table where we use the maids login credentials and the room attcahed to the button")
-        } else {
-          endCleaning(username, room.roomNum);
-          console.log("Send the current time to the database for the ending room clean in the logs table where we use the maids login credentials and the room attcahed to the button")
-          setRooms(rooms.filter(r => r.roomNum !== room.roomNum));
-        }
-      }}
-      />
-      </div>
+      {rooms.map((room, index) => (
+        <div key={room.roomNum}>
+          {room.roomNum}
+          
+          {/* Render button only for the first room */}
+          {index === 0 && (
+            <SwitchButton
+              name='Start Room Clean' 
+              secondname='Stop Room Clean'
+              roomNum={room.roomNum}
+              onToggle={(on) => {
+                if (on) {
+                  startCleaning(username, room.roomNum);
+                  console.log("Send the current time to the database for the starting room clean");
+                } else {
+                  endCleaning(username, room.roomNum);
+                  console.log("Send the current time to the database for the ending room clean");
+                  setRooms(rooms.filter(r => r.roomNum !== room.roomNum));
+                }
+              }}
+            />
+          )}
+        </div>
       ))}
-      
-      </div>
-  )
+    </div>
+  );
 }
 
-export default Dashboard
+export default Dashboard;
