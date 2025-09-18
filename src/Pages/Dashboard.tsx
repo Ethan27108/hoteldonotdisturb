@@ -1,6 +1,7 @@
 import SwitchButton from 'Components/SwitchButton'
 import React, { useEffect } from 'react'
 import { useState } from 'react';
+import { start } from 'repl';
 
 interface Room {
   roomNum: number;
@@ -34,6 +35,50 @@ const Dashboard = () => {
       }
   };
 
+  const startCleaning = async (username: string | null, room: number) => {
+      try {
+        const response = await fetch('/api/cleanStart/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username,room }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          console.log(response)
+        }
+        else {
+          console.error('Failed to fetch rooms');
+        }
+      } catch (error) {
+        console.error('Error fetching rooms:', error);
+      }
+  };
+  const endCleaning = async (username: string | null, room: number) => {
+      try {
+        const response = await fetch('/api/cleanEnd/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username,room }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          console.log(response)
+        }
+        else {
+          console.error('Failed to fetch rooms');
+        }
+      } catch (error) {
+        console.error('Error fetching rooms:', error);
+      }
+  };
 
   useEffect(() => {
   const username = localStorage.getItem('username');
@@ -57,9 +102,12 @@ const Dashboard = () => {
       roomNum={room.roomNum} //Will become dynamic based on the room assigned to the maid when they log in
       onToggle={(on) => {
         if (on) {
+          startCleaning(username, room.roomNum);
         console.log("Send the current time to the database for the starting room clean in the logs table where we use the maids login credentials and the room attcahed to the button")
         } else {
+          endCleaning(username, room.roomNum);
           console.log("Send the current time to the database for the ending room clean in the logs table where we use the maids login credentials and the room attcahed to the button")
+          setRooms(rooms.filter(r => r.roomNum !== room.roomNum));
         }
       }}
       />
