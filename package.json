@@ -20,7 +20,7 @@
     "@types/react-dom": "^19.1.9",
     "concurrently": "^9.2.1",
     "typescript": "^5.9.2",
-    "wait-on": "^7.0.1"
+    "wait-on": "^7.2.0"
   },
   "scripts": {
     "start": "concurrently \"npm run start-django\" \"wait-on http://localhost:8000 && npm run start-react\"",
