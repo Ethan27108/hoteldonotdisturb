@@ -9,7 +9,8 @@ interface Room {
 
 const Dashboard = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [username, setUsername] = useState<string>('ethan');
+  const [username, setUsername] = useState<string | null>(null);
+  
   const fetchRooms = async () => {
       try {
         const response = await fetch('/api/getRoom/', {
@@ -35,6 +36,8 @@ const Dashboard = () => {
 
 
   useEffect(() => {
+  setUsername(localStorage.getItem('username'));
+  console.log(username)
   fetchRooms();
 }, []); // ← Run only once
 
@@ -46,6 +49,7 @@ const Dashboard = () => {
     <div>
       Maid Dashboard
       {rooms.map((room) => (
+        <div>{room.roomNum}
       <SwitchButton
       name='Start Room Clean' 
       secondname='Stop Room Clean'
@@ -58,7 +62,9 @@ const Dashboard = () => {
         }
       }}
       />
+      </div>
       ))}
+      
       </div>
   )
 }
