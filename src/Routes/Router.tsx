@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from '../Pages/Login';
-import Dashboard from 'Pages/Dashboard';
+import Dashboard from '../Pages/Dashboard';
 
 const AppRouter: React.FC = () => {
   return (
