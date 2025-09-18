@@ -18,6 +18,7 @@ const Login: React.FC = () => {
     e.preventDefault();
 
     try {
+      console.log(username)
       localStorage.setItem('username', username);
       const response = await fetch('/api/login/', {
         method: 'POST',

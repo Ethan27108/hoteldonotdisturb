@@ -11,7 +11,7 @@ const Dashboard = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [username, setUsername] = useState<string | null>(null);
   
-  const fetchRooms = async () => {
+  const fetchRooms = async (username: string | null) => {
       try {
         const response = await fetch('/api/getRoom/', {
           method: 'POST',
@@ -36,9 +36,10 @@ const Dashboard = () => {
 
 
   useEffect(() => {
-  setUsername(localStorage.getItem('username'));
+  const username = localStorage.getItem('username');
+  setUsername(username);
   console.log(username)
-  fetchRooms();
+  fetchRooms(username);
 }, []); // ← Run only once
 
 
