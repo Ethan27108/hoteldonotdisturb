@@ -22,4 +22,9 @@ def login_view(request):
 def dashboard_view(request):
     if request.method != 'POST':
         return JsonResponse({"error": "POST required"}, status=400)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    username = data.get("username")
     return JsonResponse([{"roomNum": 101}, {"roomNum": 102}, {"roomNum": 103}], safe=False)
