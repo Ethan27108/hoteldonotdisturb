@@ -18,3 +18,8 @@ def login_view(request):
         return JsonResponse({"success": True, "message": "Logged in!"})
     else:
         return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)
+@csrf_exempt   
+def dashboard_view(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "POST required"}, status=400)
+    return JsonResponse([{"roomNum": 101}, {"roomNum": 102}, {"roomNum": 103}], safe=False)

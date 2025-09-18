@@ -17,11 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
-from backend.myapp.views import login_view
 
 urlpatterns = [
-    path('api/login/', login_view),  # Add this line
+    path('api/', include('backend.myapp.urls')),  # <== clean API route
     path('', lambda request: HttpResponse("Backend up")),
-    path('myapp/', include('backend.myapp.urls')),
     path('admin/', admin.site.urls),
 ]
