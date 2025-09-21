@@ -1,6 +1,7 @@
 // src/pages/Login.tsx
 
-import React, { useState, FormEvent } from 'react';
+import { get } from 'http';
+import React, { useState, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface LoginResponse {
@@ -8,23 +9,53 @@ interface LoginResponse {
   message: string;
 }
 
+
+
 const Login: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [message, setMessage] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  useEffect(() => {
+  fetch('/api/csrf/', {
+    method: 'GET',
+    credentials: 'include', // VERY IMPORTANT to include cookies
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to get CSRF token");
+      return res.json();
+    })
+    .then(() => {
+      console.log("CSRF cookie set");
+    })
+    .catch(err => {
+      console.error("Error fetching CSRF token:", err);
+    });
+}, []);
+
+
+
+  const getCSRFToken = () => {
+  const name = "csrftoken";
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : "";
+};
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {
+      const csrfToken = getCSRFToken();
       console.log(username)
       localStorage.setItem('username', username);
       const response = await fetch('/api/login/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
         },
+        credentials: 'include',
         body: JSON.stringify({ username, password }),
       });
 

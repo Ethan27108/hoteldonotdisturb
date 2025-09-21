@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import dashboard_view, cleanStart, cleanEnd
+from .views import dashboard_view, cleanStart, cleanEnd, login_view
 from .views import signup_view, RoleLoginView, dashboard, delete_account, remove_account
 from django.contrib.auth.views import LogoutView
 from django.contrib.auth.decorators import login_required
@@ -9,6 +9,7 @@ urlpatterns = [
     path('cleanStart/', cleanStart),
     path('endClean/', cleanEnd),
     path("signup/", signup_view, name="signup"),
+    #path('login/', login_view),
     path("login/", RoleLoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("dashboard/", dashboard, name="dashboard"),

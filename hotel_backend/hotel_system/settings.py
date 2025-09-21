@@ -60,6 +60,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8001",  # React runs on port 8001 (per your scripts)
 ]
 
+# At the end of settings.py is fine
+CSRF_COOKIE_NAME = "csrftoken"
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SECURE = False
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8001",  # React runs on port 8001 (per your scripts)
+]
 
 ROOT_URLCONF = 'hotel_system.urls'
 

@@ -6,10 +6,12 @@ from django.contrib.auth.views import LogoutView
 from hotel.views import delete_account
 from hotel.views import remove_account
 from django.http import HttpResponse
+from hotel.views import get_csrf_token
 
 urlpatterns = [
     path('', lambda request: HttpResponse("Backend up")),
     path("admin/", admin.site.urls),
     path('api/', include('hotel.urls')),  # <== clean API route
+    path('api/csrf/', get_csrf_token),
     
 ]

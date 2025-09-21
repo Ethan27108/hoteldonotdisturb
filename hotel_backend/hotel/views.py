@@ -18,24 +18,51 @@ class RoleLoginView(LoginView):
     template_name = "registration/login.html"
 
     def form_valid(self, form):
+        
         user = form.get_user()
         role = form.cleaned_data["role"]
 
         # check role against related models
         if role == "maid" and not hasattr(user, "maid"):
             messages.error(self.request, "This account is not registered as a Maid.")
-            return redirect("login")
+            return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)
         if role == "admin" and not hasattr(user, "admin"):
             messages.error(self.request, "This account is not registered as an Admin.")
-            return redirect("login")
+            return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)
 
         
         login(self.request, user)
+        return JsonResponse({"success": True, "message": "Logged in!"})
         return redirect("dashboard") 
 
     def form_invalid(self, form):
         messages.error(self.request, "Invalid username or password.")
-        return redirect("login")
+        return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)
+
+from django.views.decorators.csrf import ensure_csrf_cookie
+
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    return JsonResponse({'detail': 'CSRF cookie set'})
+
+@csrf_exempt
+def login_view(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "POST required"}, status=400)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    username = data.get("username")
+    password = data.get("password")
+
+    #if this is in database and password matches, return success
+
+    if username == "ethan" and password == "pass":
+        return JsonResponse({"success": True, "message": "Logged in!"})
+    else:
+        return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)
 
 
 @login_required
