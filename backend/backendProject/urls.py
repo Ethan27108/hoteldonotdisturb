@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.http import HttpResponse
 
 urlpatterns = [
-    path('api/', include('backend.myapp.urls')),  # <== clean API route
+    path('api/', include('backendProject.myapp.urls')),  # <== clean API route
     path('', lambda request: HttpResponse("Backend up")),
     path('admin/', admin.site.urls),
 ]
