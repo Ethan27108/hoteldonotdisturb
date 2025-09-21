@@ -7,8 +7,10 @@ from django.contrib import messages
 from .forms import CustomLoginForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-
-
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+import time
 
 #Login Function
 class RoleLoginView(LoginView):
@@ -94,3 +96,46 @@ def signup_view(request):
         form = SignUpForm()
 
     return render(request, "registration/signup.html", {"form": form})
+
+@login_required
+def dashboard_view(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "POST required"}, status=400)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    username = data.get("username")
+    return JsonResponse([{"roomNum": 101}, {"roomNum": 102}, {"roomNum": 103}], safe=False)
+
+@login_required
+def cleanStart(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "POST required"}, status=400)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    username = data.get("username")
+    room = data.get("room")
+    currentTime = time.time()
+    try:
+        return JsonResponse("worked as expected", safe=False)
+    except Exception as e:
+        return JsonResponse({"error": "Database couldnt handle it"}, status=400)
+    
+@login_required
+def cleanEnd(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "POST required"}, status=400)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    username = data.get("username")
+    room = data.get("room")
+    currentTime = time.time()
+    try:
+        return JsonResponse("worked as expected", safe=False)
+    except Exception as e:
+        return JsonResponse({"error": "Database couldnt handle it"}, status=400)

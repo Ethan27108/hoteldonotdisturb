@@ -25,7 +25,7 @@
   "scripts": {
     "start": "concurrently \"npm run start-django\" \"npm run start-react\"",
     "start-react": "cross-env PORT=8001 react-scripts start",
-    "start-django": "py backend/manage.py runserver",
+    "start-django": "py ../hotel_backend/manage.py runserver",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

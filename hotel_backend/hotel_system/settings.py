@@ -37,10 +37,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Third-party
+    'rest_framework',
+    'corsheaders',
+
     'hotel',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Cors above CommonMiddleware
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -49,6 +55,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+# CORS settings to allow requests from React
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8001",  # React runs on port 8001 (per your scripts)
+]
+
 
 ROOT_URLCONF = 'hotel_system.urls'
 
@@ -77,8 +88,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'hotel_db',
-        'USER': 'root',
-        'PASSWORD': 'password',
+        'USER': 'django_user',
+        'PASSWORD': 'django_pass',
         'HOST': 'localhost',
         'PORT': '3306',
     }
