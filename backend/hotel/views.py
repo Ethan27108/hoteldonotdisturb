@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from .forms import SignUpForm
-from .models import Maid, Admin
+from .models import Maid, Admin, Room, Task
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
 from .forms import CustomLoginForm
@@ -16,8 +16,7 @@ from django.contrib.auth.models import User
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import logout as django_logout
 from django.http import JsonResponse
-
-
+from django.utils import timezone
 
 #Login Functions
 class AdminLoginView(APIView):
@@ -153,4 +152,116 @@ class MaidSignupView(APIView):
                 "role": "maid",
             },
             status=status.HTTP_201_CREATED,
+        )
+
+#Get Maid Id Function
+class GetMaidIdView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            maid = Maid.objects.get(user=request.user)
+        except Maid.DoesNotExist:
+            return JsonResponse({"error": "This user is not a Maid"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(
+            {"maid_id": maid.maid_id, "username": request.user.username},
+            status=status.HTTP_200_OK
+        )
+
+
+#Get Rooms By Maid Id Function
+class GetRoomsByMaidIdView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            maid = Maid.objects.get(user=request.user)
+        except Maid.DoesNotExist:
+            return JsonResponse({"error": "This user is not a Maid"}, status=status.HTTP_400_BAD_REQUEST)
+
+        rooms = Room.objects.all().values(
+            "room_id", "room_number", "status", "battery_indicator", "battery_last_checked", "updated_at"
+        )
+
+        return JsonResponse(
+            {"maid_id": maid.maid_id, "rooms": list(rooms)},
+            status=status.HTTP_200_OK
+        )
+        
+#Clean Start Function
+class CleanStartView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        maid_id = request.data.get("maid_id")
+        room_id = request.data.get("room_id")
+
+        if not maid_id or not room_id:
+            return JsonResponse({"error": "maid_id and room_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            maid = Maid.objects.get(maid_id=maid_id)
+            room = Room.objects.get(room_id=room_id)
+        except (Maid.DoesNotExist, Room.DoesNotExist):
+            return JsonResponse({"error": "Invalid maid_id or room_id"}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            task = Task.objects.get(maid=maid, room=room, status="pending")
+        except Task.DoesNotExist:
+            return JsonResponse({"error": "No pending task for this maid and room"}, status=status.HTTP_404_NOT_FOUND)
+
+        task.status = "in_progress"
+        task.start_time = timezone.now()
+        task.save()
+
+        return JsonResponse(
+            {"message": "Cleaning started", "task_id": task.task_id, "status": task.status, "start_time": task.start_time},
+            status=status.HTTP_200_OK,
+        )
+        
+#Clean End Function
+class CleanEndView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        maid_id = request.data.get("maid_id")
+        room_id = request.data.get("room_id")
+
+        if not maid_id or not room_id:
+            return Response({"error": "maid_id and room_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            maid = Maid.objects.get(maid_id=maid_id)
+            room = Room.objects.get(room_id=room_id)
+        except (Maid.DoesNotExist, Room.DoesNotExist):
+            return Response({"error": "Invalid maid_id or room_id"}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            task = Task.objects.get(maid=maid, room=room, status="in_progress")
+        except Task.DoesNotExist:
+            return Response({"error": "No task in progress for this maid and room"}, status=status.HTTP_404_NOT_FOUND)
+
+
+        task.status = "completed"
+        task.finish_time = timezone.now()
+        task.save()
+
+
+        if task.start_time:
+            duration = task.finish_time - task.start_time
+            duration_minutes = round(duration.total_seconds() / 60, 2)
+            time_message = f"It took {duration_minutes} minutes to clean the room."
+        else:
+            time_message = "Start time not recorded; unable to calculate duration."
+
+        return Response(
+            {
+                "message": "Cleaning completed",
+                "task_id": task.task_id,
+                "status": task.status,
+                "finish_time": task.finish_time,
+                "duration": time_message,
+            },
+            status=status.HTTP_200_OK,
         )
