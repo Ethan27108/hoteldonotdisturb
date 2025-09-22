@@ -1,8 +1,9 @@
 import React, { useState, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 interface LoginResponse {
+  token: string;
   success: boolean;
-  message: string;
+  role: string;
 }
 
 const Login: React.FC = () => {
@@ -30,15 +31,18 @@ const Login: React.FC = () => {
       });
 
       const data: LoginResponse = await response.json();
-      if (response.ok) {
-        console.log(data);
-      }
       
       if (response.ok && data.success) {
-        localStorage.setItem('username', data.message); // Store username in localStorage
-        navigate('/dashboard');
+        if (data.role === 'admin') {
+          localStorage.setItem('token', data.token); // Store token in localStorage
+        navigate('/admin');
+        }
+        else if (data.role === 'maid') {
+          localStorage.setItem('token', data.token); // Store token in localStorage
+          navigate('/dashboard');
+        }
       } else {
-        setMessage(data.message || 'Login failed');
+        setMessage('Login failed');
       }
     } catch (error) {
       console.error('Login error:', error);

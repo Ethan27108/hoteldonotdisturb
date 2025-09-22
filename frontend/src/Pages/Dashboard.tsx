@@ -3,17 +3,18 @@ import React, { useEffect } from 'react'
 import { useState } from 'react';
 interface Room {
   roomNum: number;
-  // add other fields if needed
 }
 
 const Dashboard = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [username, setUsername] = useState<string | null>(null);
-  
-  const fetchRooms = async (username: string | null) => {
+  const [token, setToken] = useState<string | null>(null);
+  const [maidId, setMaidId] = useState<string | null>(null);
+
+  const getMaidId = async (username: string | null) => {
       try {
-        const response = await fetch('/api/getRoom/', {
-          method: 'POST',
+        const response = await fetch('/api/getMaidId/', {
+          method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -23,8 +24,29 @@ const Dashboard = () => {
         const data = await response.json();
 
         if (response.ok) {
+          setMaidId(data.maidId);
+        }
+        else {
+          console.error('Failed to get Maid Id');
+        }
+      } catch (error) {
+        console.error('Error getting maid Id:', error);
+      }
+  }
+  const fetchRooms = async (maidId: string | null) => {
+      try {
+        const response = await fetch('/api/getRoom/', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ maidId }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
           setRooms(data.rooms);
-          setUsername(data.username);
         }
         else {
           console.error('Failed to fetch rooms');
@@ -34,14 +56,14 @@ const Dashboard = () => {
       }
   };
 
-  const startCleaning = async (username: string | null, room: number) => {
+  const startCleaning = async (maidId: string | null, room: number) => {
       try {
         const response = await fetch('/api/cleanStart/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ username, room }),
+          body: JSON.stringify({ maidId, room }),
         });
 
         if (response.ok) {
@@ -55,14 +77,14 @@ const Dashboard = () => {
       }
   };
 
-  const endCleaning = async (username: string | null, room: number) => {
+  const endCleaning = async (maidId: string | null, room: number) => {
       try {
         const response = await fetch('/api/cleanEnd/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ username, room }),
+          body: JSON.stringify({ maidId, room }),
         });
 
         if (response.ok) {
@@ -77,10 +99,13 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    setToken(token);
     const username = localStorage.getItem('username');
     setUsername(username);
     console.log(username);
-    fetchRooms(username);
+    getMaidId(username);
+    fetchRooms(maidId);
   }, []); // ← Run only once
 
   return (
@@ -98,10 +123,10 @@ const Dashboard = () => {
               roomNum={room.roomNum}
               onToggle={(on) => {
                 if (on) {
-                  startCleaning(username, room.roomNum);
+                  startCleaning(maidId, room.roomNum);
                   console.log("Send the current time to the database for the starting room clean");
                 } else {
-                  endCleaning(username, room.roomNum);
+                  endCleaning(maidId, room.roomNum);
                   console.log("Send the current time to the database for the ending room clean");
                   setRooms(rooms.filter(r => r.roomNum !== room.roomNum));
                 }

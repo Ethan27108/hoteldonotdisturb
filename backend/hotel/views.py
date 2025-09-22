@@ -30,8 +30,8 @@ class AdminLoginView(APIView):
         user = authenticate(username=username, password=password)
         if user and Admin.objects.filter(user=user).exists():
             token, created = Token.objects.get_or_create(user=user)
-            return JsonResponse({"token": token.key, "role": "admin"}, status=status.HTTP_200_OK)
-        return JsonResponse({"error": "Invalid credentials or not an Admin"}, status=status.HTTP_401_UNAUTHORIZED)
+            return JsonResponse({"token": token.key, "role": "admin", "success": True}, status=status.HTTP_200_OK)
+        return JsonResponse({"error": "Invalid credentials or not an Admin", "success":False}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class MaidLoginView(APIView):
@@ -45,8 +45,8 @@ class MaidLoginView(APIView):
         user = authenticate(username=username, password=password)
         if user and Maid.objects.filter(user=user).exists():
             token, created = Token.objects.get_or_create(user=user)
-            return JsonResponse({"token": token.key, "role": "maid"}, status=status.HTTP_200_OK)
-        return JsonResponse({"error": "Invalid credentials or not a Maid"}, status=status.HTTP_401_UNAUTHORIZED)
+            return JsonResponse({"token": token.key, "role": "maid", "success": True}, status=status.HTTP_200_OK)
+        return JsonResponse({"error": "Invalid credentials or not a Maid", "success":False}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 #Logout Function
