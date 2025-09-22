@@ -5,10 +5,11 @@ from hotel.views import AdminLoginView, MaidLoginView
 from hotel.views import AdminSignupView, MaidSignupView
 from hotel.views import LogoutView
 from hotel.views import DeactivateAccountView, RemoveAccountView
-
+from django.http import HttpResponse
 
 
 urlpatterns = [
+    path('', lambda request: HttpResponse("Backend up")),
     path("admin/", admin.site.urls),
     path("api/signup/admin/", AdminSignupView.as_view(), name="admin-signup"),
     path("api/signup/maid/", MaidSignupView.as_view(), name="maid-signup"),

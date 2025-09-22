@@ -1,6 +1,5 @@
 import React, { useState, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCSRFToken } from 'utils/csrf';
 interface LoginResponse {
   success: boolean;
   message: string;
@@ -14,44 +13,27 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false); // Added loading state
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetch('/api/csrf/', {
-      method: 'GET',
-      credentials: 'include',
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to get CSRF token");
-        return res.json();
-      })
-      .then(() => {
-        console.log("CSRF cookie set");
-      })
-      .catch((err) => {
-        console.error("Error fetching CSRF token:", err);
-      });
-  }, []);
-
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true); // Set loading to true when request is in progress
 
     try {
-      const csrfToken = getCSRFToken();
       
 
-      const response = await fetch('/api/login/', {
+      const response = await fetch('/api/login/maid/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken,
         },
-        credentials: 'include',
-        body: JSON.stringify({ username, password, role }), // Include role in the body
+        body: JSON.stringify({ username, password }), // Include role in the body
       });
 
       const data: LoginResponse = await response.json();
-
+      if (response.ok) {
+        console.log(data);
+      }
+      
       if (response.ok && data.success) {
         localStorage.setItem('username', data.message); // Store username in localStorage
         navigate('/dashboard');
