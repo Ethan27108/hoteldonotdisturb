@@ -1,0 +1,22 @@
+from django.contrib import admin
+from django.urls import path
+from django.contrib.auth import views as auth_views
+from hotel.views import AdminLoginView, MaidLoginView
+from hotel.views import AdminSignupView, MaidSignupView
+from hotel.views import LogoutView
+from hotel.views import DeactivateAccountView, RemoveAccountView
+
+
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("api/signup/admin/", AdminSignupView.as_view(), name="admin-signup"),
+    path("api/signup/maid/", MaidSignupView.as_view(), name="maid-signup"),
+    path("api/login/admin/", AdminLoginView.as_view(), name="admin-login"),
+    path("api/login/maid/", MaidLoginView.as_view(), name="maid-login"),
+    path("api/logout/", LogoutView.as_view(), name="logout"),
+    path("api/account/deactivate/", DeactivateAccountView.as_view(), name="deactivate-account"), #to deactivate account (keeps user data such as logs)
+    path("api/account/remove/", RemoveAccountView.as_view(), name="remove-account"), #to remove an account permanently (deletes all user data with the user)
+
+
+]
