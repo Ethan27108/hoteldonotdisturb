@@ -38,7 +38,7 @@ const Login: React.FC = () => {
 
     try {
       const csrfToken = getCSRFToken();
-      localStorage.setItem('username', username);
+      
 
       const response = await fetch('/api/login/', {
         method: 'POST',
@@ -53,7 +53,7 @@ const Login: React.FC = () => {
       const data: LoginResponse = await response.json();
 
       if (response.ok && data.success) {
-        setMessage(data.message);
+        localStorage.setItem('username', data.message); // Store username in localStorage
         navigate('/dashboard');
       } else {
         setMessage(data.message || 'Login failed');

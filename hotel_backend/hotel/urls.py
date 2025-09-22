@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import dashboard_view, cleanStart, cleanEnd, login_view
-from .views import signup_view, RoleLoginView, dashboard, delete_account, remove_account
+from .views import signup_view, dashboard, delete_account, remove_account
 from django.contrib.auth.views import LogoutView
 from django.contrib.auth.decorators import login_required
 

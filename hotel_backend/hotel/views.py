@@ -61,7 +61,7 @@ def login_view(request):
 
     if user:
         login(request, user)
-        return JsonResponse({"success": True, "message": "Logged in!"})
+        return JsonResponse({"success": True, "message": username})
     else:
         return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)
 
@@ -133,8 +133,11 @@ def dashboard_view(request):
         data = json.loads(request.body)
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
-    username = data.get("username")
-    return JsonResponse([{"roomNum": 101}, {"roomNum": 102}, {"roomNum": 103}], safe=False)
+    ###find the way to switch from username to the id (simple database thing)
+    maidName = data.get("username")
+    ###Get the room number using the maid id from the database
+    rooms = [{"roomNum": 101}, {"roomNum": 102}, {"roomNum": 103}]
+    return JsonResponse({"username": maidName, "rooms": rooms}, safe=False)
 
 @login_required
 def cleanStart(request):

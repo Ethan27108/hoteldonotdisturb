@@ -26,7 +26,8 @@ const Dashboard = () => {
         const data = await response.json();
 
         if (response.ok) {
-          setRooms(data);
+          setRooms(data.rooms);
+          setUsername(data.username);
         }
         else {
           console.error('Failed to fetch rooms');
