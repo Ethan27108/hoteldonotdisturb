@@ -17,6 +17,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import logout as django_logout
 from django.http import JsonResponse
 
+
+
 #Login Functions
 class AdminLoginView(APIView):
     authentication_classes = []
@@ -44,7 +46,7 @@ class MaidLoginView(APIView):
         user = authenticate(username=username, password=password)
         if user and Maid.objects.filter(user=user).exists():
             token, created = Token.objects.get_or_create(user=user)
-            return JsonResponse({"token": token.key, "role": "maid", "success": True}, status=status.HTTP_200_OK)
+            return JsonResponse({"token": token.key, "role": "maid"}, status=status.HTTP_200_OK)
         return JsonResponse({"error": "Invalid credentials or not a Maid"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
@@ -119,11 +121,9 @@ class AdminSignupView(APIView):
         user = User.objects.create_user(username=username, email=email, password=password)
         admin = Admin.objects.create(user=user, name=name)
 
-        token, created = Token.objects.get_or_create(user=user)
         return JsonResponse(
             {
                 "message": "Admin account created successfully",
-
                 "role": "admin",
             },
             status=status.HTTP_201_CREATED,
@@ -147,13 +147,10 @@ class MaidSignupView(APIView):
         user = User.objects.create_user(username=username, email=email, password=password)
         maid = Maid.objects.create(user=user, name=name, profile_info=profile_info)
 
-        token, created = Token.objects.get_or_create(user=user)
         return JsonResponse(
             {
                 "message": "Maid account created successfully",
-
                 "role": "maid",
             },
             status=status.HTTP_201_CREATED,
-
         )
