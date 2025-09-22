@@ -14,9 +14,10 @@ const Dashboard = () => {
   const getMaidId = async (username: string | null) => {
       try {
         const response = await fetch('/api/getMaidId/', {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({ username }),
         });
@@ -24,7 +25,7 @@ const Dashboard = () => {
         const data = await response.json();
 
         if (response.ok) {
-          setMaidId(data.maidId);
+          setMaidId(data.maid_id);
         }
         else {
           console.error('Failed to get Maid Id');
@@ -36,9 +37,10 @@ const Dashboard = () => {
   const fetchRooms = async (maidId: string | null) => {
       try {
         const response = await fetch('/api/getRoom/', {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({ maidId }),
         });
@@ -46,6 +48,7 @@ const Dashboard = () => {
         const data = await response.json();
 
         if (response.ok) {
+          console.log(data.rooms);
           setRooms(data.rooms);
         }
         else {
@@ -62,6 +65,7 @@ const Dashboard = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({ maidId, room }),
         });
@@ -83,6 +87,7 @@ const Dashboard = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({ maidId, room }),
         });

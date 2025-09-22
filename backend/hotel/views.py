@@ -158,7 +158,7 @@ class MaidSignupView(APIView):
 class GetMaidIdView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def post(self, request):
         try:
             maid = Maid.objects.get(user=request.user)
         except Maid.DoesNotExist:
@@ -174,7 +174,7 @@ class GetMaidIdView(APIView):
 class GetRoomsByMaidIdView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def post(self, request):
         try:
             maid = Maid.objects.get(user=request.user)
         except Maid.DoesNotExist:
@@ -229,18 +229,18 @@ class CleanEndView(APIView):
         room_id = request.data.get("room_id")
 
         if not maid_id or not room_id:
-            return Response({"error": "maid_id and room_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({"error": "maid_id and room_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             maid = Maid.objects.get(maid_id=maid_id)
             room = Room.objects.get(room_id=room_id)
         except (Maid.DoesNotExist, Room.DoesNotExist):
-            return Response({"error": "Invalid maid_id or room_id"}, status=status.HTTP_404_NOT_FOUND)
+            return JsonResponse({"error": "Invalid maid_id or room_id"}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             task = Task.objects.get(maid=maid, room=room, status="in_progress")
         except Task.DoesNotExist:
-            return Response({"error": "No task in progress for this maid and room"}, status=status.HTTP_404_NOT_FOUND)
+            return JsonResponse({"error": "No task in progress for this maid and room"}, status=status.HTTP_404_NOT_FOUND)
 
 
         task.status = "completed"
@@ -255,7 +255,7 @@ class CleanEndView(APIView):
         else:
             time_message = "Start time not recorded; unable to calculate duration."
 
-        return Response(
+        return JsonResponse(
             {
                 "message": "Cleaning completed",
                 "task_id": task.task_id,
