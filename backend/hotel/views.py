@@ -123,7 +123,7 @@ class AdminSignupView(APIView):
         return JsonResponse(
             {
                 "message": "Admin account created successfully",
-                "token": token.key,
+
                 "role": "admin",
             },
             status=status.HTTP_201_CREATED,
@@ -151,8 +151,9 @@ class MaidSignupView(APIView):
         return JsonResponse(
             {
                 "message": "Maid account created successfully",
-                "token": token.key,
+
                 "role": "maid",
             },
             status=status.HTTP_201_CREATED,
+
         )
