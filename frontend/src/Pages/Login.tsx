@@ -1,6 +1,6 @@
 import React, { useState, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import { getCSRFToken } from 'utils/csrf';
 interface LoginResponse {
   success: boolean;
   message: string;
@@ -31,11 +31,6 @@ const Login: React.FC = () => {
       });
   }, []);
 
-  const getCSRFToken = () => {
-    const name = "csrftoken";
-    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-    return match ? decodeURIComponent(match[1]) : "";
-  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

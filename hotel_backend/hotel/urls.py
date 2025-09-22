@@ -9,8 +9,8 @@ urlpatterns = [
     path('cleanStart/', cleanStart),
     path('endClean/', cleanEnd),
     path("signup/", signup_view, name="signup"),
-    #path('login/', login_view),
-    path("login/", RoleLoginView.as_view(), name="login"),
+    path('login/', login_view),
+    #path("login/", RoleLoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("dashboard/", dashboard, name="dashboard"),
     path("delete-account/", delete_account, name="delete_account"), #to deactivate account (keeps user data such as logs)

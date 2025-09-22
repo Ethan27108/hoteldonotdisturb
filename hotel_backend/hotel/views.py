@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate
 from .forms import SignUpForm
 from .models import Maid, Admin
 from django.contrib.auth.views import LoginView
@@ -45,7 +45,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 def get_csrf_token(request):
     return JsonResponse({'detail': 'CSRF cookie set'})
 
-@csrf_exempt
+
 def login_view(request):
     if request.method != 'POST':
         return JsonResponse({"error": "POST required"}, status=400)
@@ -57,9 +57,10 @@ def login_view(request):
     username = data.get("username")
     password = data.get("password")
 
-    #if this is in database and password matches, return success
+    user = authenticate(username=username, password=password)
 
-    if username == "ethan" and password == "pass":
+    if user:
+        login(request, user)
         return JsonResponse({"success": True, "message": "Logged in!"})
     else:
         return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)

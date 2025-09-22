@@ -1,7 +1,7 @@
 import SwitchButton from 'Components/SwitchButton'
 import React, { useEffect } from 'react'
 import { useState } from 'react';
-
+import { getCSRFToken } from 'utils/csrf';
 interface Room {
   roomNum: number;
   // add other fields if needed
@@ -17,7 +17,9 @@ const Dashboard = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
           },
+          credentials: 'include',
           body: JSON.stringify({ username }),
         });
 
