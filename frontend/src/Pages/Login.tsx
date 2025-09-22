@@ -35,10 +35,12 @@ const Login: React.FC = () => {
       if (response.ok && data.success) {
         if (data.role === 'admin') {
           localStorage.setItem('token', data.token); // Store token in localStorage
+          localStorage.setItem('username', username); // Store token in localStorage
         navigate('/admin');
         }
         else if (data.role === 'maid') {
           localStorage.setItem('token', data.token); // Store token in localStorage
+          localStorage.setItem('username', username); // Store token in localStorage
           navigate('/dashboard');
         }
       } else {

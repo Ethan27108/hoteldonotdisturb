@@ -1,8 +1,13 @@
 import SwitchButton from 'Components/SwitchButton'
-import React, { useEffect } from 'react'
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react'
+
 interface Room {
-  roomNum: number;
+  room_id: number;
+  room_number: number;
+  status: string;
+  battery_indicator: number;
+  battery_last_checked: string;
+  updated_at: string;
 }
 
 const Dashboard = () => {
@@ -12,128 +17,159 @@ const Dashboard = () => {
   const [maidId, setMaidId] = useState<string | null>(null);
 
   const getMaidId = async (username: string | null) => {
-      try {
-        const response = await fetch('/api/getMaidId/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ username }),
-        });
+    if (!username || !token) {
+      console.error('Missing username or token for getMaidId');
+      return;
+    }
 
-        const data = await response.json();
+    try {
+      const response = await fetch('/api/getMaidId/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ username }),
+      });
 
-        if (response.ok) {
-          setMaidId(data.maid_id);
-        }
-        else {
-          console.error('Failed to get Maid Id');
-        }
-      } catch (error) {
-        console.error('Error getting maid Id:', error);
+      const data = await response.json();
+
+      if (response.ok) {
+        setMaidId(data.maid_id);
+      } else {
+        console.error('Failed to get Maid Id');
       }
+    } catch (error) {
+      console.error('Error getting maid Id:', error);
+    }
   }
+
   const fetchRooms = async (maidId: string | null) => {
-      try {
-        const response = await fetch('/api/getRoom/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ maidId }),
-        });
+    if (!maidId || !token) {
 
-        const data = await response.json();
+      console.error('Missing maidId or token for fetchRooms');
+      return;
+    }
 
-        if (response.ok) {
-          console.log(data.rooms);
-          setRooms(data.rooms);
-        }
-        else {
-          console.error('Failed to fetch rooms');
-        }
-      } catch (error) {
-        console.error('Error fetching rooms:', error);
+    try {
+      const response = await fetch('/api/getRoom/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ maidId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log(data.rooms);
+        setRooms(data.rooms);
+      } else {
+        console.error('Failed to fetch rooms');
       }
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+    }
   };
 
   const startCleaning = async (maidId: string | null, room: number) => {
-      try {
-        const response = await fetch('/api/cleanStart/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ maidId, room }),
-        });
+    if (!maidId || !token) {
+      console.error('Missing maidId or token for startCleaning');
+      return;
+    }
 
-        if (response.ok) {
-          console.log(response)
-        }
-        else {
-          console.error('Failed to start cleaning');
-        }
-      } catch (error) {
-        console.error('Error starting cleaning:', error);
+    try {
+      const response = await fetch('/api/cleanStart/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ maidId, room }),
+      });
+
+      if (response.ok) {
+        console.log('Started cleaning room', room);
+      } else {
+        console.error('Failed to start cleaning');
       }
+    } catch (error) {
+      console.error('Error starting cleaning:', error);
+    }
   };
 
   const endCleaning = async (maidId: string | null, room: number) => {
-      try {
-        const response = await fetch('/api/cleanEnd/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ maidId, room }),
-        });
+    if (!maidId || !token) {
+      console.error('Missing maidId or token for endCleaning');
+      return;
+    }
 
-        if (response.ok) {
-          console.log(response)
-        }
-        else {
-          console.error('Failed to end cleaning');
-        }
-      } catch (error) {
-        console.error('Error ending cleaning:', error);
+    try {
+      const response = await fetch('/api/cleanEnd/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ maidId, room }),
+      });
+
+      if (response.ok) {
+        console.log('Ended cleaning room', room);
+      } else {
+        console.error('Failed to end cleaning');
       }
+    } catch (error) {
+      console.error('Error ending cleaning:', error);
+    }
   };
 
+  // Load token and username from localStorage once
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    setToken(token);
-    const username = localStorage.getItem('username');
-    setUsername(username);
-    console.log(username);
-    getMaidId(username);
-    fetchRooms(maidId);
-  }, []); // ← Run only once
+    const localToken = localStorage.getItem('token');
+    const localUsername = localStorage.getItem('username');
+
+    setToken(localToken);
+    setUsername(localUsername);
+  }, []);
+
+  // When token and username are ready, fetch maid ID
+  useEffect(() => {
+    if (token && username) {
+      getMaidId(username);
+    }
+  }, [token, username]);
+
+  // When maidId is ready, fetch rooms
+  useEffect(() => {
+    if (maidId && token) {
+      fetchRooms(maidId);
+    }
+  }, [maidId, token]);
 
   return (
     <div>
-      Maid Dashboard
+      <h2>Maid Dashboard</h2>
       {rooms.map((room, index) => (
-        <div key={room.roomNum}>
-          {room.roomNum}
-          
-          {/* Render button only for the first room */}
+        <div key={room.room_number}>
+          <p>Room {room.room_number}</p>
+
+          {/* Render switch only for the first room */}
           {index === 0 && (
             <SwitchButton
-              name='Start Room Clean' 
+              name='Start Room Clean'
               secondname='Stop Room Clean'
-              roomNum={room.roomNum}
+              roomNum={room.room_number}
               onToggle={(on) => {
                 if (on) {
-                  startCleaning(maidId, room.roomNum);
-                  console.log("Send the current time to the database for the starting room clean");
+                  startCleaning(maidId, room.room_number);
+                  console.log("Start room cleaning timestamp recorded");
                 } else {
-                  endCleaning(maidId, room.roomNum);
-                  console.log("Send the current time to the database for the ending room clean");
-                  setRooms(rooms.filter(r => r.roomNum !== room.roomNum));
+                  endCleaning(maidId, room.room_number);
+                  console.log("End room cleaning timestamp recorded");
+                  setRooms(rooms.filter(r => r.room_number !== room.room_number));
                 }
               }}
             />
@@ -142,6 +178,6 @@ const Dashboard = () => {
       ))}
     </div>
   );
-}
+};
 
 export default Dashboard;

@@ -183,7 +183,6 @@ class GetRoomsByMaidIdView(APIView):
         rooms = Room.objects.all().values(
             "room_id", "room_number", "status", "battery_indicator", "battery_last_checked", "updated_at"
         )
-
         return JsonResponse(
             {"maid_id": maid.maid_id, "rooms": list(rooms)},
             status=status.HTTP_200_OK
