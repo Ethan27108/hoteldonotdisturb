@@ -194,16 +194,16 @@ class CleanStartView(APIView):
 
     def post(self, request):
         maid_id = request.data.get("maid_id")
-        room_id = request.data.get("room_id")
+        room_number = request.data.get("room_number")
 
-        if not maid_id or not room_id:
-            return JsonResponse({"error": "maid_id and room_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not maid_id or not room_number:
+            return JsonResponse({"error": "maid_id and room_number are required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             maid = Maid.objects.get(maid_id=maid_id)
-            room = Room.objects.get(room_id=room_id)
+            room = Room.objects.get(room_number=room_number)
         except (Maid.DoesNotExist, Room.DoesNotExist):
-            return JsonResponse({"error": "Invalid maid_id or room_id"}, status=status.HTTP_404_NOT_FOUND)
+            return JsonResponse({"error": "Invalid maid_id or room_number"}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             task = Task.objects.get(maid=maid, room=room, status="pending")
@@ -225,16 +225,16 @@ class CleanEndView(APIView):
 
     def post(self, request):
         maid_id = request.data.get("maid_id")
-        room_id = request.data.get("room_id")
+        room_number = request.data.get("room_number")
 
-        if not maid_id or not room_id:
-            return JsonResponse({"error": "maid_id and room_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not maid_id or not room_number:
+            return JsonResponse({"error": "maid_id and room_number are required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             maid = Maid.objects.get(maid_id=maid_id)
-            room = Room.objects.get(room_id=room_id)
+            room = Room.objects.get(room_number=room_number)
         except (Maid.DoesNotExist, Room.DoesNotExist):
-            return JsonResponse({"error": "Invalid maid_id or room_id"}, status=status.HTTP_404_NOT_FOUND)
+            return JsonResponse({"error": "Invalid maid_id or room_number"}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             task = Task.objects.get(maid=maid, room=room, status="in_progress")

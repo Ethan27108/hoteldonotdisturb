@@ -74,7 +74,7 @@ const Dashboard = () => {
     }
   };
 
-  const startCleaning = async (maidId: string | null, room: number) => {
+  const startCleaning = async (maid_id: string | null, room_number: number) => {
     if (!maidId || !token) {
       console.error('Missing maidId or token for startCleaning');
       return;
@@ -87,11 +87,11 @@ const Dashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ maidId, room }),
+        body: JSON.stringify({ maid_id, room_number }),
       });
 
       if (response.ok) {
-        console.log('Started cleaning room', room);
+        console.log('Started cleaning room', room_number);
       } else {
         console.error('Failed to start cleaning');
       }
@@ -100,7 +100,7 @@ const Dashboard = () => {
     }
   };
 
-  const endCleaning = async (maidId: string | null, room: number) => {
+  const endCleaning = async (maid_id: string | null, room_number: number) => {
     if (!maidId || !token) {
       console.error('Missing maidId or token for endCleaning');
       return;
@@ -113,11 +113,11 @@ const Dashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ maidId, room }),
+        body: JSON.stringify({ maid_id, room_number }),
       });
 
       if (response.ok) {
-        console.log('Ended cleaning room', room);
+        console.log('Ended cleaning room', room_number);
       } else {
         console.error('Failed to end cleaning');
       }
