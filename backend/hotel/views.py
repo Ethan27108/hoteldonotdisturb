@@ -120,11 +120,11 @@ class AdminSignupView(APIView):
         user = User.objects.create_user(username=username, email=email, password=password)
         admin = Admin.objects.create(user=user, name=name)
 
-        token, created = Token.objects.get_or_create(user=user)
+
         return Response(
             {
                 "message": "Admin account created successfully",
-                "token": token.key,
+
                 "role": "admin",
             },
             status=status.HTTP_201_CREATED,
@@ -148,12 +148,13 @@ class MaidSignupView(APIView):
         user = User.objects.create_user(username=username, email=email, password=password)
         maid = Maid.objects.create(user=user, name=name, profile_info=profile_info)
 
-        token, created = Token.objects.get_or_create(user=user)
+
         return Response(
             {
                 "message": "Maid account created successfully",
-                "token": token.key,
+
                 "role": "maid",
             },
             status=status.HTTP_201_CREATED,
+
         )
