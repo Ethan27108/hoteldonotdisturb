@@ -25,10 +25,10 @@ class RoleLoginView(LoginView):
         # check role against related models
         if role == "maid" and not hasattr(user, "maid"):
             messages.error(self.request, "This account is not registered as a Maid.")
-            return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)
+            return JsonResponse({"success": False, "message": "Invalid maid"}, status=401)
         if role == "admin" and not hasattr(user, "admin"):
             messages.error(self.request, "This account is not registered as an Admin.")
-            return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)
+            return JsonResponse({"success": False, "message": "Invalid admin"}, status=401)
 
         
         login(self.request, user)

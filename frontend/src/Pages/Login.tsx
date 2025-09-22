@@ -1,6 +1,3 @@
-// src/pages/Login.tsx
-
-import { get } from 'http';
 import React, { useState, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,46 +6,45 @@ interface LoginResponse {
   message: string;
 }
 
-
-
 const Login: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+  const [role, setRole] = useState<string>(''); // Added role state
   const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false); // Added loading state
   const navigate = useNavigate();
 
   useEffect(() => {
-  fetch('/api/csrf/', {
-    method: 'GET',
-    credentials: 'include', // VERY IMPORTANT to include cookies
-  })
-    .then(res => {
-      if (!res.ok) throw new Error("Failed to get CSRF token");
-      return res.json();
+    fetch('/api/csrf/', {
+      method: 'GET',
+      credentials: 'include',
     })
-    .then(() => {
-      console.log("CSRF cookie set");
-    })
-    .catch(err => {
-      console.error("Error fetching CSRF token:", err);
-    });
-}, []);
-
-
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to get CSRF token");
+        return res.json();
+      })
+      .then(() => {
+        console.log("CSRF cookie set");
+      })
+      .catch((err) => {
+        console.error("Error fetching CSRF token:", err);
+      });
+  }, []);
 
   const getCSRFToken = () => {
-  const name = "csrftoken";
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : "";
-};
+    const name = "csrftoken";
+    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : "";
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoading(true); // Set loading to true when request is in progress
 
     try {
       const csrfToken = getCSRFToken();
-      console.log(username)
       localStorage.setItem('username', username);
+
       const response = await fetch('/api/login/', {
         method: 'POST',
         headers: {
@@ -56,7 +52,7 @@ const Login: React.FC = () => {
           'X-CSRFToken': csrfToken,
         },
         credentials: 'include',
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, role }), // Include role in the body
       });
 
       const data: LoginResponse = await response.json();
@@ -70,6 +66,8 @@ const Login: React.FC = () => {
     } catch (error) {
       console.error('Login error:', error);
       setMessage('Error connecting to server');
+    } finally {
+      setLoading(false); // Reset loading state after response
     }
   };
 
@@ -77,7 +75,12 @@ const Login: React.FC = () => {
     <div style={{ padding: '2rem' }}>
       <h2>Login</h2>
       {message && (
-        <div style={{ color: message === 'Login successful' ? 'green' : 'red', marginBottom: '1rem' }}>
+        <div
+          style={{
+            color: message === 'Logged in successfully!' ? 'green' : 'red',
+            marginBottom: '1rem',
+          }}
+        >
           {message}
         </div>
       )}
@@ -87,7 +90,7 @@ const Login: React.FC = () => {
           <input
             type="text"
             value={username}
-            onChange={e => setUsername(e.target.value)}
+            onChange={(e) => setUsername(e.target.value)}
             required
           />
         </div>
@@ -96,11 +99,21 @@ const Login: React.FC = () => {
           <input
             type="password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
-        <button type="submit">Login</button>
+        <div style={{ marginBottom: '0.5rem' }}>
+          <label>Role:</label><br />
+          <select value={role} onChange={(e) => setRole(e.target.value)} required>
+            <option value="">Select Role</option>
+            <option value="maid">Maid</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
       </form>
     </div>
   );
