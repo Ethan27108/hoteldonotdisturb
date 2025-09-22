@@ -11,8 +11,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 import time
-
-#Login Function
+from django.views.decorators.csrf import ensure_csrf_cookie
+#Old Login Function
+"""
 class RoleLoginView(LoginView):
     authentication_form = CustomLoginForm
     template_name = "registration/login.html"
@@ -38,8 +39,7 @@ class RoleLoginView(LoginView):
     def form_invalid(self, form):
         messages.error(self.request, "Invalid username or password.")
         return JsonResponse({"success": False, "message": "Invalid credentials"}, status=401)
-
-from django.views.decorators.csrf import ensure_csrf_cookie
+"""
 
 @ensure_csrf_cookie
 def get_csrf_token(request):
