@@ -9,7 +9,7 @@ interface LoginResponse {
 const Login: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const [role, setRole] = useState<string>(''); // Added role state
+  const [rolePage, setRolePage] = useState<string>(''); // Added role state
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false); // Added loading state
   const navigate = useNavigate();
@@ -21,8 +21,8 @@ const Login: React.FC = () => {
 
     try {
       
-
-      const response = await fetch('/api/login/maid/', {
+      const endpoint = `/api/login/${rolePage}/`; // role is either 'maid' or 'admin'
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,7 +88,7 @@ const Login: React.FC = () => {
         </div>
         <div style={{ marginBottom: '0.5rem' }}>
           <label>Role:</label><br />
-          <select value={role} onChange={(e) => setRole(e.target.value)} required>
+          <select value={rolePage} onChange={(e) => setRolePage(e.target.value)} required>
             <option value="">Select Role</option>
             <option value="maid">Maid</option>
             <option value="admin">Admin</option>
