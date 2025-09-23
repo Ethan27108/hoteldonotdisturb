@@ -174,7 +174,7 @@ class GetMaidIdView(APIView):
 class GetRoomsByMaidIdView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def post(self, request):
         try:
             maid = Maid.objects.get(user=request.user)
         except Maid.DoesNotExist:
