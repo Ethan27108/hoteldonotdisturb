@@ -174,15 +174,21 @@ class GetMaidIdView(APIView):
 class GetRoomsByMaidIdView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def get(self, request):
         try:
             maid = Maid.objects.get(user=request.user)
         except Maid.DoesNotExist:
             return JsonResponse({"error": "This user is not a Maid"}, status=status.HTTP_400_BAD_REQUEST)
 
-        rooms = Room.objects.all().values(
-            "room_id", "room_number", "status", "battery_indicator", "battery_last_checked", "updated_at"
+        rooms = Room.objects.filter(task__maid=maid).distinct().values(
+            "room_id",
+            "room_number",
+            "status",
+            "battery_indicator",
+            "battery_last_checked",
+            "updated_at"
         )
+
         return JsonResponse(
             {"maid_id": maid.maid_id, "rooms": list(rooms)},
             status=status.HTTP_200_OK
