@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from .forms import SignUpForm
-from .models import Maid, Admin, Room, Task
+from .models import Maid, Admin, Room, Task, Floor
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
 from .forms import CustomLoginForm
@@ -17,8 +17,10 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import logout as django_logout
 from django.http import JsonResponse
 from django.utils import timezone
+from .models import MaidStat
 
-#Login Functions
+
+#Login Functions (Maid + Admin)
 class AdminLoginView(APIView):
     authentication_classes = []
     permission_classes = []
@@ -49,7 +51,7 @@ class MaidLoginView(APIView):
         return JsonResponse({"error": "Invalid credentials or not a Maid", "success":False}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-#Logout Function
+#Logout Function (Miad + Admin)
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -63,7 +65,7 @@ class LogoutView(APIView):
         return JsonResponse({"message": "Successfully logged out"}, status=status.HTTP_200_OK)
 
 
-#Deactivate Accoun
+#Deactivate Maid's Own Account Function (Maid)
 class DeactivateAccountView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -82,7 +84,7 @@ class DeactivateAccountView(APIView):
             status=status.HTTP_200_OK
         )
 
-#Delete Account
+#Delete Admin's own Account Function (Admin)
 class RemoveAccountView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -103,7 +105,7 @@ class RemoveAccountView(APIView):
         )
 
 
-# Signup Functions
+# Signup Functions (Maid + Admin)
 class AdminSignupView(APIView):
     authentication_classes = []
     permission_classes = []
@@ -154,7 +156,7 @@ class MaidSignupView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
-#Get Maid Id Function
+#Get Maid Id Function (Util)
 class GetMaidIdView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -170,7 +172,7 @@ class GetMaidIdView(APIView):
         )
 
 
-#Get Rooms By Maid Id Function
+#Get Rooms By Maid Id Function (Util)
 class GetRoomsByMaidIdView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -194,7 +196,7 @@ class GetRoomsByMaidIdView(APIView):
             status=status.HTTP_200_OK
         )
         
-#Clean Start Function
+#Clean Start Function (Maid)
 class CleanStartView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -225,7 +227,7 @@ class CleanStartView(APIView):
             status=status.HTTP_200_OK,
         )
         
-#Clean End Function
+#Clean End Function (Maid)
 class CleanEndView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -269,4 +271,283 @@ class CleanEndView(APIView):
                 "duration": time_message,
             },
             status=status.HTTP_200_OK,
+        )
+        
+
+#View Maid Stats Function (Maid)
+class GetMaidStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            maid = Maid.objects.get(user=request.user)
+        except Maid.DoesNotExist:
+            return JsonResponse({"error": "This user is not a Maid"}, status=status.HTTP_400_BAD_REQUEST)
+
+        stats_qs = (
+            MaidStat.objects
+            .filter(maid=maid)
+            .order_by("-date")
+            .values(
+                "stat_id",
+                "date",
+                "total_rooms_cleaned",
+                "avg_rooms_per_shift",
+                "avg_time_per_room",
+                "working_hours",
+                "active_cleaning_hours",
+                "completion_rate",
+                "tasks_incomplete",
+                "emergency_tasks_handled",
+                "battery_changes_performed",
+                "on_time_shift_attendance",
+                "break_usage",
+            )
+        )
+
+        return JsonResponse(
+            {
+                "maid_id": maid.maid_id,
+                "stats": list(stats_qs),
+            },
+            status=status.HTTP_200_OK
+        )
+       
+# Deactivate Maid's Account By Admin Function (Admin)
+class AdminDeactivateMaidView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+       
+        if not Admin.objects.filter(user=request.user).exists():
+            return JsonResponse({"error": "Only admins can perform this action."}, status=403)
+
+        maid_id = request.data.get("maid_id")
+
+        if not maid_id:
+            return JsonResponse({"error": "maid_id is required."}, status=400)
+
+        try:
+            maid = Maid.objects.get(maid_id=maid_id)
+        except Maid.DoesNotExist:
+            return JsonResponse({"error": "Maid not found."}, status=404)
+
+        user = maid.user
+        user.is_active = False
+        user.save()
+
+        return JsonResponse(
+            {"message": f"Maid account (ID: {maid_id}) deactivated successfully."},
+            status=status.HTTP_200_OK
+        )
+        
+# Permanently Delete Maid's Account By Admin Function (Admin)
+class AdminDeleteMaidView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+      
+        if not Admin.objects.filter(user=request.user).exists():
+            return JsonResponse({"error": "Only admins can perform this action."}, status=403)
+
+        maid_id = request.data.get("maid_id")
+        if not maid_id:
+            return JsonResponse({"error": "maid_id is required."}, status=400)
+
+        try:
+            maid = Maid.objects.select_related("user").get(maid_id=maid_id)
+        except Maid.DoesNotExist:
+            return JsonResponse({"error": "Maid not found."}, status=404)
+
+        target_user = maid.user
+    
+        if hasattr(target_user, "auth_token"):
+            target_user.auth_token.delete()
+
+        target_user.delete()
+
+        return JsonResponse(
+            {"message": f"Maid account (ID: {maid_id}) permanently deleted."},
+            status=status.HTTP_200_OK
+        )
+        
+        
+#Create Floor Function (Admin)
+class AdminAddFloorView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            admin = Admin.objects.get(user=request.user)
+        except Admin.DoesNotExist:
+            return JsonResponse({"error": "Only admins can perform this action."}, status=403)
+
+        floor_number = request.data.get("floor_number")
+        if floor_number is None:
+            return JsonResponse({"error": "floor_number is required."}, status=400)
+
+        try:
+            floor_number = int(floor_number)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "floor_number must be an integer."}, status=400)
+
+        if floor_number <= 0:
+            return JsonResponse({"error": "floor_number must be greater than 0."}, status=400)
+
+        if Floor.objects.filter(floor_number=floor_number).exists():
+            return JsonResponse(
+                {"error": f"Floor {floor_number} already exists."},
+                status=409
+            )
+
+        floor = Floor.objects.create(
+            floor_number=floor_number,
+            created_by=admin,
+        )
+
+        return JsonResponse(
+            {
+                "message": "Floor created successfully.",
+                "floor": {
+                    "floor_id": floor.floor_id,
+                    "floor_number": floor.floor_number,
+                    "created_by_admin_id": admin.admin_id,
+                    "created_at": floor.created_at,
+                    "updated_at": floor.updated_at,
+                },
+            },
+            status=status.HTTP_201_CREATED,
+            safe=False
+        )
+        
+#Delete Floor Function (Admin)
+class AdminDeleteFloorView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Ensure the logged-in user is an Admin
+        try:
+            admin = Admin.objects.get(user=request.user)
+        except Admin.DoesNotExist:
+            return JsonResponse({"error": "Only admins can perform this action."}, status=403)
+
+        floor_id = request.data.get("floor_id")
+
+        if not floor_id:
+            return JsonResponse({"error": "floor_id is required."}, status=400)
+
+        try:
+            floor = Floor.objects.get(floor_id=floor_id)
+        except Floor.DoesNotExist:
+            return JsonResponse({"error": "Floor not found."}, status=404)
+
+        # Delete the floor (this will also delete its rooms because of on_delete=models.CASCADE)
+        floor.delete()
+
+        return JsonResponse(
+            {"message": f"Floor with ID {floor_id} deleted successfully."},
+            status=status.HTTP_200_OK
+        )
+
+#Edit Floor Function (Admin)
+
+class AdminEditFloorView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Ensure caller is an admin
+        try:
+            admin = Admin.objects.get(user=request.user)
+        except Admin.DoesNotExist:
+            return JsonResponse({"error": "Only admins can perform this action."}, status=403)
+
+        floor_id = request.data.get("floor_id")
+        new_floor_number = request.data.get("floor_number")
+
+        if not floor_id:
+            return JsonResponse({"error": "floor_id is required."}, status=400)
+        if new_floor_number is None:
+            return JsonResponse({"error": "floor_number is required."}, status=400)
+
+        try:
+            new_floor_number = int(new_floor_number)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "floor_number must be an integer."}, status=400)
+
+        if new_floor_number <= 0:
+            return JsonResponse({"error": "floor_number must be greater than 0."}, status=400)
+
+        try:
+            floor = Floor.objects.get(floor_id=floor_id)
+        except Floor.DoesNotExist:
+            return JsonResponse({"error": "Floor not found."}, status=404)
+
+        if Floor.objects.filter(floor_number=new_floor_number).exclude(floor_id=floor_id).exists():
+            return JsonResponse({"error": f"Floor number {new_floor_number} already exists."}, status=409)
+
+        floor.floor_number = new_floor_number
+        floor.save()
+
+        return JsonResponse(
+            {
+                "message": f"Floor {floor_id} updated successfully.",
+                "floor": {
+                    "floor_id": floor.floor_id,
+                    "new_floor_number": floor.floor_number,
+                    "updated_at": floor.updated_at,
+                },
+            },
+            status=status.HTTP_200_OK
+        )
+
+#View Floor Function - View Rooms in a Floor (Admin)
+
+class AdminViewFloorView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            admin = Admin.objects.get(user=request.user)
+        except Admin.DoesNotExist:
+            return JsonResponse({"error": "Only admins can perform this action."}, status=403)
+
+        floor_id = request.data.get("floor_id")
+        floor_number = request.data.get("floor_number")
+        
+        #it accepts either floor_id or floor_number
+        if not floor_id and floor_number is None:
+            return JsonResponse({"error": "Provide either floor_id or floor_number."}, status=400)
+
+        floor = None
+        if floor_id:
+            try:
+                floor = Floor.objects.get(floor_id=floor_id)
+            except Floor.DoesNotExist:
+                return JsonResponse({"error": "Floor not found."}, status=404)
+        else:
+            try:
+                floor_number = int(floor_number)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "floor_number must be an integer."}, status=400)
+
+            if floor_number <= 0:
+                return JsonResponse({"error": "floor_number must be greater than 0."}, status=400)
+
+            try:
+                floor = Floor.objects.get(floor_number=floor_number)
+            except Floor.DoesNotExist:
+                return JsonResponse({"error": "Floor not found."}, status=404)
+
+        room_numbers = list(
+            Room.objects.filter(floor=floor).order_by("room_number").values_list("room_number", flat=True)
+        )
+
+        return JsonResponse(
+            {
+                "floor": {
+                    "floor_number": floor.floor_number,
+                },
+                "rooms": room_numbers
+            },
+            status=status.HTTP_200_OK
         )
