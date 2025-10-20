@@ -16,6 +16,9 @@ const Dashboard = () => {
   const [token, setToken] = useState<string | null>(null);
   const [maidId, setMaidId] = useState<string | null>(null);
 
+  const [comment, setComment] = useState<string>('');
+  const handleCommentChange = (value: string) => setComment(value);
+
   const getMaidId = async (username: string | null) => {
     if (!username || !token) {
       console.error('Missing username or token for getMaidId');
@@ -99,8 +102,7 @@ const Dashboard = () => {
       console.error('Error starting cleaning:', error);
     }
   };
-
-  const endCleaning = async (maid_id: string | null, room_number: number) => {
+  const endCleaning = async (maid_id: string | null, room_number: number, commentText: string = '') => {
     if (!maidId || !token) {
       console.error('Missing maidId or token for endCleaning');
       return;
@@ -113,15 +115,15 @@ const Dashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ maid_id, room_number }),
+        body: JSON.stringify({ maid_id, room_number, comment: commentText }),
       });
 
       if (response.ok) {
-        console.log('Ended cleaning room', room_number);
+        console.log('Ended cleaning room', room_number, 'comment sent:', commentText);
       } else {
         console.error('Failed to end cleaning');
       }
-    } catch (error) {
+   } catch (error) {
       console.error('Error ending cleaning:', error);
     }
   };
@@ -151,29 +153,52 @@ const Dashboard = () => {
 
   return (
     <div>
-      <h2>Maid Dashboard</h2>
       {rooms.map((room, index) => (
         <div key={room.room_number}>
-          <p>Room {room.room_number}</p>
+          
 
           {/* Render switch only for the first room */}
           {index === 0 && (
-            <SwitchButton
-              name='Start Room Clean'
-              secondname='Stop Room Clean'
-              roomNum={room.room_number}
-              onToggle={(on) => {
-                if (on) {
-                  startCleaning(maidId, room.room_number);
-                  console.log("Start room cleaning timestamp recorded");
-                } else {
-                  endCleaning(maidId, room.room_number);
-                  console.log("End room cleaning timestamp recorded");
-                  setRooms(rooms.filter(r => r.room_number !== room.room_number));
+            <div>
+              <p>Room {room.room_number}</p>
+              <p> 
+                Battery Level: {room.battery_indicator}%
+              </p>
+              <SwitchButton
+                name='Start Room Clean'
+                secondname='Stop Room Clean'
+                roomNum={room.room_number}
+                onToggle={(on) => {
+                  if (on) {
+                    startCleaning(maidId, room.room_number);
+                    console.log("Start room cleaning timestamp recorded");
+                  } else {
+                    endCleaning(maidId, room.room_number, comment);
+                    console.log("End room cleaning timestamp recorded, comment sent");
+                    setComment('');
+                    setRooms(rooms.filter(r => r.room_number !== room.room_number));
+                  }
+                }}
+              />
+              <textarea
+                value={comment}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  handleCommentChange(e.currentTarget.value)
                 }
-              }}
-            />
+                placeholder="Add comment..."
+                rows={5}
+              />
+            </div>
           )}
+
+          {index !== 0 && (<div>
+              <p>Room {room.room_number}</p>
+              <p> 
+                Battery Level: {room.battery_indicator}%
+              </p>
+            </div>
+          )}
+
         </div>
       ))}
     </div>

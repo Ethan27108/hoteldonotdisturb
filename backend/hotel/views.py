@@ -234,6 +234,7 @@ class CleanEndView(APIView):
     def post(self, request):
         maid_id = request.data.get("maid_id")
         room_number = request.data.get("room_number")
+        comment = request.data.get("comment")
 
         if not maid_id or not room_number:
             return JsonResponse({"error": "maid_id and room_number are required"}, status=status.HTTP_400_BAD_REQUEST)
