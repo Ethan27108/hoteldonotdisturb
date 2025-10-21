@@ -10,7 +10,25 @@ interface Room {
   updated_at: string;
 }
 
+interface Stats {
+  stat_id: number;
+  date: string;
+  total_rooms_cleaned: number;
+  avg_rooms_per_shift: number;
+  avg_time_per_room: number;
+  working_hours: number;
+  active_cleaning_hours: number;
+  completion_rate: number;
+  tasks_incomplete: number;
+  emergency_tasks_handled: number;
+  battery_changes_performed: number;
+  on_time_shift_attendance: number;
+  break_usage: number;
+            
+}
 const Dashboard = () => {
+  const [stats, setStats] = useState<Stats[]>([]);
+  const [intervalTime, setIntervalTime] = useState<number>(15000); // 15 seconds
   const [rooms, setRooms] = useState<Room[]>([]);
   const [username, setUsername] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -44,6 +62,33 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error getting maid Id:', error);
+    }
+  }
+
+  const fetchStats = async (maidId: string | null) => {
+    if (!maidId || !token) {
+      console.error('Missing maidId or token for fetchStats');
+      return;
+    }
+    try {
+      const response = await fetch('/api/viewStats/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ maidId }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        console.log(data.stats);
+        setStats(data.stats);
+      }
+      else {
+        console.error('Failed to fetch rooms');
+      }
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
     }
   }
 
@@ -144,11 +189,22 @@ const Dashboard = () => {
     }
   }, [token, username]);
 
-  // When maidId is ready, fetch rooms
   useEffect(() => {
     if (maidId && token) {
       fetchRooms(maidId);
+      fetchStats(maidId);
     }
+  }, [maidId, token]);
+
+  // When maidId is ready, fetch rooms
+  useEffect(() => {
+    if (!maidId || !token) return;
+    const intervalId = setInterval(() => {
+      fetchRooms(maidId);
+      fetchStats(maidId);
+    }, intervalTime); // change interval (ms) as needed
+
+    return () => clearInterval(intervalId);
   }, [maidId, token]);
 
   return (
@@ -198,9 +254,27 @@ const Dashboard = () => {
               </p>
             </div>
           )}
-
         </div>
       ))}
+      <div>
+             <h3>Statistics</h3>
+              {stats.map((stat) => (
+                <div key={stat.stat_id}>
+                  <p>Date: {stat.date}</p>
+                  <p>Total Rooms Cleaned: {stat.total_rooms_cleaned}</p>
+                  <p>Average Rooms per Shift: {stat.avg_rooms_per_shift}</p>
+                  <p>Average Time per Room: {stat.avg_time_per_room} minutes</p>
+                  <p>Working Hours: {stat.working_hours} hours</p>
+                  <p>Active Cleaning Hours: {stat.active_cleaning_hours} hours</p>
+                  <p>Completion Rate: {stat.completion_rate}%</p>
+                  <p>Tasks Incomplete: {stat.tasks_incomplete}</p>
+                  <p>Emergency Tasks Handled: {stat.emergency_tasks_handled}</p>
+                  <p>Battery Changes Performed: {stat.battery_changes_performed}</p>
+                  <p>On-time Shift Attendance: {stat.on_time_shift_attendance}%</p>
+                  <p>Break Usage: {stat.break_usage} minutes</p>
+                </div>
+              ))}
+          </div>
     </div>
   );
 };
