@@ -1,5 +1,6 @@
 import SwitchButton from 'Components/SwitchButton'
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom';
 
 interface Room {
   room_id: number;
@@ -33,6 +34,7 @@ const Dashboard = () => {
   const [username, setUsername] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [maidId, setMaidId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const [comment, setComment] = useState<string>('');
   const handleCommentChange = (value: string) => setComment(value);
@@ -209,6 +211,7 @@ const Dashboard = () => {
 
   return (
     <div>
+      <button onClick={() => navigate("/PofileMaid")}>Profile</button>
       {rooms.map((room, index) => (
         <div key={room.room_number}>
           
