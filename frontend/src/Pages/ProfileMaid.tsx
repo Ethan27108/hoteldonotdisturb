@@ -16,6 +16,8 @@ const ProfileMaid = () => {
   const [token, setToken] = useState<string | null>(null);
   const [maidId, setMaidId] = useState<string | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [usernameSwap, setUsernameSwap] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
 
   const getMaidId = async (username: string | null) => {
     if (!username || !token) {
@@ -74,7 +76,29 @@ const ProfileMaid = () => {
       console.error('Error fetching rooms:', error);
     }
   }
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/changeSettings/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ usernameSwap, password }),
+      });
 
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('Settings updated successfully');
+      } else {
+        console.error('Failed to get Maid Id');
+      }
+    } catch (error) {
+      console.error('Error getting maid Id:', error);
+    }
+  }
   useEffect(() => {
       const localToken = localStorage.getItem('token');
       const localUsername = localStorage.getItem('username');
@@ -91,7 +115,28 @@ const ProfileMaid = () => {
 
   return (
     <div>ProfileMaid
-      <button onClick={() => fetchPrevRooms(maidId)}>Profile</button>
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginBottom: '0.5rem' }}>
+          <label>Username:</label><br />
+          <input
+            type="text"
+            value={usernameSwap}
+            onChange={(e) => setUsernameSwap(e.target.value)}
+            required
+          />
+        </div>
+        <div style={{ marginBottom: '0.5rem' }}>
+          <label>Password:</label><br />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit">Submit</button>
+        </form>
+      <button onClick={() => fetchPrevRooms(maidId)}>Previous Rooms</button>
     </div>
   )
 }

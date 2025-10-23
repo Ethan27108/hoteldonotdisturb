@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from '../Pages/Login';
 import Dashboard from '../Pages/Dashboard';
+import ProfileMaid from 'Pages/ProfileMaid';
 
 const AppRouter: React.FC = () => {
   return (
@@ -10,6 +11,7 @@ const AppRouter: React.FC = () => {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/ProfileMaid" element={<ProfileMaid />}/>
       </Routes>
     </BrowserRouter>
   );

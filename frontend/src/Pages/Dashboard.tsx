@@ -211,7 +211,7 @@ const Dashboard = () => {
 
   return (
     <div>
-      <button onClick={() => navigate("/PofileMaid")}>Profile</button>
+      <button onClick={() => navigate("/ProfileMaid")}>Profile</button>
       {rooms.map((room, index) => (
         <div key={room.room_number}>
           
