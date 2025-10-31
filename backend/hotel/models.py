@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 
 class Admin(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -9,12 +10,23 @@ class Admin(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+ALLOWED_DAY_CODES = {"Mon","Tue","Wed","Thu","Fri","Sat","Sun"}
+
+def validate_shift_days(value):
+    if not isinstance(value, list):
+        raise ValidationError("shift_days must be a list.")
+    bad = [v for v in value if v not in ALLOWED_DAY_CODES]
+    if bad:
+        raise ValidationError(f"Invalid day codes: {bad}. Allowed: {sorted(ALLOWED_DAY_CODES)}.")
+    if len(set(value)) != len(value):
+        raise ValidationError("shift_days must not contain duplicates.")
+
 class Maid(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     maid_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     profile_info = models.TextField(null=True, blank=True)
-    shift_day = models.CharField(max_length=20, null=True, blank=True)
+    shift_days = models.JSONField(default=list, blank=True, validators=[validate_shift_days])
     shift_start_time = models.TimeField(null=True, blank=True)
     shift_end_time = models.TimeField(null=True, blank=True)
     break_minutes = models.IntegerField(default=0, null=True, blank=True)
