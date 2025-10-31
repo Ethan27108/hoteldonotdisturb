@@ -28,6 +28,8 @@ from hotel.views import MaidViewProfileView
 from hotel.views import AdminSetupMaidProfileView
 from hotel.views import AdminViewMaidProfileView
 from hotel.views import AdminGetMaidStatsView
+from hotel.views import AdminViewRoomStatusLogsView
+from hotel.views import ViewCleaningLogsView
 
 urlpatterns = [
     path('', lambda request: HttpResponse("Backend up")),
@@ -61,6 +63,8 @@ urlpatterns = [
     path("api/admin/setupMaidProfile/", AdminSetupMaidProfileView.as_view(), name="admin-setup-maid-profile"),
     path("api/admin/viewMaidProfile/", AdminViewMaidProfileView.as_view(), name="admin-view-maid-profile"),
     path("api/admin/maidStats/", AdminGetMaidStatsView.as_view(), name="admin-maid-stats"),
+    path("api/admin/viewRoomStatusLogs/", AdminViewRoomStatusLogsView.as_view(), name="admin-view-room-status-logs"),
+    path("api/cleaningLogs/", ViewCleaningLogsView.as_view(), name="view-cleaning-logs"),
 
     
     

@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from .forms import SignUpForm
-from .models import Maid, Admin, Room, Task, Floor
+from .models import Maid, Admin, Room, Task, Floor, RoomStatusLog, CleaningLog
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
 from .forms import CustomLoginForm
@@ -1443,5 +1443,213 @@ class AdminGetMaidStatsView(APIView):
             {
                 "stats": stats
             },
+            status=status.HTTP_200_OK
+        )
+        
+# View Room Status Log (Admin) - allows admin to view the room status changes for a certain room
+
+class AdminViewRoomStatusLogsView(APIView):
+    """
+
+      it accepts either "room_id"
+      or -> "room_number" and "floor_number"
+      or-> "room_number" and "floor_id"
+    
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            Admin.objects.get(user=request.user)
+        except Admin.DoesNotExist:
+            return JsonResponse({"error": "Only admins can perform this action."}, status=403)
+
+        room_id = request.data.get("room_id")
+        room_number = request.data.get("room_number")
+        floor_id = request.data.get("floor_id")
+        floor_number = request.data.get("floor_number")
+
+        room = None
+
+        if room_id is not None:
+            try:
+                rid = int(room_id)
+                if rid <= 0:
+                    return JsonResponse({"error": "room_id must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "room_id must be an integer."}, status=400)
+            try:
+                room = Room.objects.get(room_id=rid)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found."}, status=404)
+
+        else:
+            if room_number is None:
+                return JsonResponse(
+                    {"error": "Provide room_id OR (room_number with floor_id or floor_number)."},
+                    status=400
+                )
+            try:
+                rnum = int(room_number)
+                if rnum <= 0:
+                    return JsonResponse({"error": "room_number must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "room_number must be an integer."}, status=400)
+
+            floor_by_id = None
+            floor_by_num = None
+
+            if floor_id is not None:
+                try:
+                    fid = int(floor_id)
+                    if fid <= 0:
+                        return JsonResponse({"error": "floor_id must be greater than 0."}, status=400)
+                except (TypeError, ValueError):
+                    return JsonResponse({"error": "floor_id must be an integer."}, status=400)
+                try:
+                    floor_by_id = Floor.objects.get(floor_id=fid)
+                except Floor.DoesNotExist:
+                    return JsonResponse({"error": f"Floor with id {fid} not found."}, status=404)
+
+            if floor_number is not None:
+                try:
+                    fnum = int(floor_number)
+                    if fnum <= 0:
+                        return JsonResponse({"error": "floor_number must be greater than 0."}, status=400)
+                except (TypeError, ValueError):
+                    return JsonResponse({"error": "floor_number must be an integer."}, status=400)
+                try:
+                    floor_by_num = Floor.objects.get(floor_number=fnum)
+                except Floor.DoesNotExist:
+                    return JsonResponse({"error": f"Floor {fnum} not found."}, status=404)
+
+            if not floor_by_id and not floor_by_num:
+                return JsonResponse(
+                    {"error": "When using room_number, provide floor_id or floor_number."},
+                    status=400
+                )
+
+            if floor_by_id and floor_by_num and floor_by_id.floor_id != floor_by_num.floor_id:
+                return JsonResponse({"error": "floor_id and floor_number refer to different floors."}, status=400)
+
+            floor = floor_by_id or floor_by_num
+            try:
+                room = Room.objects.get(floor=floor, room_number=rnum)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found on the specified floor."}, status=404)
+
+        logs = list(
+            RoomStatusLog.objects.filter(room=room)
+            .order_by("-timestamp")
+            .values(
+                "room_log_id",
+                "status",
+                "changed_by",
+                "timestamp"
+            )
+        )
+
+        return JsonResponse(
+            {
+                "room": {
+                    "room_number": room.room_number,
+                    "floor_number": room.floor.floor_number,
+                },
+                "status_logs": logs
+            },
+            status=status.HTTP_200_OK
+        )
+        
+# View Cleaning Logs (Admin & Maid)
+class ViewCleaningLogsView(APIView):
+    """
+    it takes EXACTLY ONE of the following arguments
+      "room_id" (to show all the cleaning logs for that room)
+      "maid_id" (to show all the cleaning logs for that maid)
+
+      admin can view any maid or any room
+      maid can view ONLY HER cleaning logs or logs of all the rooms that SHE CLEANED
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        is_admin = Admin.objects.filter(user=request.user).exists()
+        maid_obj = Maid.objects.filter(user=request.user).first()
+        is_maid = maid_obj is not None
+
+        room_id = request.data.get("room_id")
+        maid_id = request.data.get("maid_id")
+
+        if (room_id is None and maid_id is None) or (room_id is not None and maid_id is not None):
+            return JsonResponse({"error": "Provide exactly one of: room_id OR maid_id."}, status=400)
+
+        if room_id is not None:
+            try:
+                rid = int(room_id)
+                if rid <= 0:
+                    return JsonResponse({"error": "room_id must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "room_id must be an integer."}, status=400)
+            try:
+                room = Room.objects.get(room_id=rid)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found."}, status=404)
+
+        if maid_id is not None:
+            try:
+                mid = int(maid_id)
+                if mid <= 0:
+                    return JsonResponse({"error": "maid_id must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "maid_id must be an integer."}, status=400)
+            try:
+                maid_target = Maid.objects.get(maid_id=mid)
+            except Maid.DoesNotExist:
+                return JsonResponse({"error": "Maid not found."}, status=404)
+
+        if is_admin:
+            if room_id is not None:
+                qs = CleaningLog.objects.filter(room=room)
+                context = {"by": "room", "room_number": room.room_number, "floor_number": room.floor.floor_number}
+            else:
+                qs = CleaningLog.objects.filter(maid=maid_target)
+                context = {"by": "maid", "maid_id": maid_target.maid_id, "maid_name": maid_target.name}
+
+        elif is_maid:
+            if room_id is not None:
+                qs = CleaningLog.objects.filter(room=room, maid=maid_obj)
+                context = {"by": "room", "room_number": room.room_number, "floor_number": room.floor.floor_number}
+            else:
+                if mid != maid_obj.maid_id:
+                    return JsonResponse({"error": "Not authorized to view another maid's logs."}, status=403)
+                qs = CleaningLog.objects.filter(maid=maid_obj)
+                context = {"by": "maid", "maid_id": maid_obj.maid_id, "maid_name": maid_obj.name}
+        else:
+            return JsonResponse({"error": "Unauthorized role."}, status=403)
+
+        # annotate with readable fields instead of IDs
+        logs = list(
+            qs.select_related("maid", "room", "room__floor")
+              .order_by("-start_time")
+              .values(
+                  "log_id",
+                  "task_id",
+                  "maid__name",
+                  "room__room_number",
+                  "report",
+                  "assigned_time",
+                  "start_time",
+                  "finish_time",
+                  "battery_changed",
+                  "created_at",
+              )
+        )
+
+        for log in logs:
+            log["maid_name"] = log.pop("maid__name", None)
+            log["room_number"] = log.pop("room__room_number", None)
+
+        return JsonResponse(
+            {"context": context, "count": len(logs), "cleaning_logs": logs},
             status=status.HTTP_200_OK
         )
