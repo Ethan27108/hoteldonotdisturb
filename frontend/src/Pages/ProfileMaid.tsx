@@ -1,142 +1,180 @@
-import React from 'react'
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import './ProfileMaid.css'
 
 interface Room {
-  room_id: number;
-  room_number: number;
-  status: string;
-  battery_indicator: number;
-  battery_last_checked: string;
-  updated_at: string;
-  comment: string;
+  room_id: number
+  room_number: number
+  status: string
+  battery_indicator: number
+  battery_last_checked: string
+  updated_at: string
+  comment: string
 }
 
 const ProfileMaid = () => {
-  const [username, setUsername] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [maidId, setMaidId] = useState<string | null>(null);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [usernameSwap, setUsernameSwap] = useState<string>('');
-    const [password, setPassword] = useState<string>('');
+  const navigate = useNavigate()
+  const [username, setUsername] = useState<string | null>(null)
+  const [token, setToken] = useState<string | null>(null)
+  const [maidId, setMaidId] = useState<string | null>(null)
+  const [rooms, setRooms] = useState<Room[]>([])
+  const [usernameSwap, setUsernameSwap] = useState<string>('')
+  const [password, setPassword] = useState<string>('')
+  const [serverMessage, setServerMessage] = useState<string | null>(null)
 
   const getMaidId = async (username: string | null) => {
-    if (!username || !token) {
-      console.error('Missing username or token for getMaidId');
-      return;
-    }
-
+    if (!username || !token) return
     try {
       const response = await fetch('/api/getMaidId/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ username }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMaidId(data.maid_id);
-      } else {
-        console.error('Failed to get Maid Id');
-      }
+      })
+      const data = await response.json()
+      if (response.ok) setMaidId(data.maid_id)
+      else console.error('Failed to get Maid Id', data)
     } catch (error) {
-      console.error('Error getting maid Id:', error);
+      console.error('Error getting maid Id:', error)
     }
   }
 
   const fetchPrevRooms = async (maidId: string | null) => {
-    if (!maidId || !token) {
-
-      console.error('Missing maidId or token for fetchRooms');
-      return;
-    }
-
+    if (!maidId || !token) return
     try {
       const response = await fetch('/api/fetchPrevRoom/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ maidId }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        console.log(data.rooms);
-        setRooms(data.rooms);
-      } else {
-        console.error('Failed to fetch rooms');
-      }
+      })
+      const data = await response.json()
+      if (response.ok) setRooms(data.rooms || [])
+      else console.error('Failed to fetch rooms', data)
     } catch (error) {
-      console.error('Error fetching rooms:', error);
+      console.error('Error fetching rooms:', error)
     }
   }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    e.preventDefault()
+    setServerMessage(null)
     try {
       const response = await fetch('/api/changeSettings/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ usernameSwap, password }),
-      });
-
-      const data = await response.json();
-
+      })
+      const data = await response.json().catch(() => ({}))
       if (response.ok) {
-        console.log('Settings updated successfully');
+        setServerMessage(data.message || 'Settings updated.')
+        // update local username if changed
+        if (usernameSwap) localStorage.setItem('username', usernameSwap)
+        setUsername(usernameSwap || username)
+        setUsernameSwap('')
+        setPassword('')
       } else {
-        console.error('Failed to get Maid Id');
+        setServerMessage(data.error || data.detail || `Error ${response.status}`)
       }
-    } catch (error) {
-      console.error('Error getting maid Id:', error);
+    } catch (err) {
+      setServerMessage((err as Error).message || 'Network error')
     }
   }
-  useEffect(() => {
-      const localToken = localStorage.getItem('token');
-      const localUsername = localStorage.getItem('username');
-  
-      setToken(localToken);
-      setUsername(localUsername);
-    }, []);
 
   useEffect(() => {
-      if (token && username) {
-        getMaidId(username);
-      }
-    }, [token, username]);
+    const localToken = localStorage.getItem('token')
+    const localUsername = localStorage.getItem('username')
+    setToken(localToken)
+    setUsername(localUsername)
+    if (localUsername) setUsernameSwap(localUsername)
+  }, [])
+
+  useEffect(() => {
+    if (token && username) getMaidId(username)
+  }, [token, username])
+
+  const handleReturnToDashboard = () => navigate('/Dashboard') // adjust route if needed
 
   return (
-    <div>ProfileMaid
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '0.5rem' }}>
-          <label>Username:</label><br />
+    <div className="profile-container">
+      <div className="profile-header">
+        <h2>Profile</h2>
+        <div className="profile-actions">
+          <button className="btn return-btn" onClick={handleReturnToDashboard}>
+            Return to Maid Dashboard
+          </button>
+        </div>
+      </div>
+
+      <form className="profile-form" onSubmit={handleSubmit}>
+        <div className="form-row">
+          <label>Username</label>
           <input
             type="text"
             value={usernameSwap}
-            onChange={(e) => setUsernameSwap(e.target.value)}
+            onChange={(e) => setUsernameSwap(e.currentTarget.value)}
+            autoComplete="username"
             required
           />
         </div>
-        <div style={{ marginBottom: '0.5rem' }}>
-          <label>Password:</label><br />
+
+        <div className="form-row">
+          <label>New password</label>
           <input
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.currentTarget.value)}
+            autoComplete="new-password"
             required
           />
         </div>
-        <button type="submit">Submit</button>
-        </form>
-      <button onClick={() => fetchPrevRooms(maidId)}>Previous Rooms</button>
+
+        <div className="form-actions">
+          <button type="submit" className="btn">Save</button>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => {
+              setUsernameSwap(username || '')
+              setPassword('')
+              setServerMessage(null)
+            }}
+          >
+            Reset
+          </button>
+        </div>
+
+        {serverMessage && <div className="server-msg">{serverMessage}</div>}
+      </form>
+
+      <div className="previous-rooms">
+        <div className="prev-header">
+          <h3>Previous Rooms</h3>
+          <button className="btn small" onClick={() => fetchPrevRooms(maidId)}>
+            Load
+          </button>
+        </div>
+
+        <div className="rooms-list">
+          {rooms.length === 0 && <div className="empty">No previous rooms</div>}
+          {rooms.map((r) => (
+            <div key={r.room_id} className="room-item">
+              <div className="room-row">
+                <div className="room-num">Room {r.room_number}</div>
+                <div className="room-batt">{r.battery_indicator}%</div>
+              </div>
+              <div className="room-comment">{r.comment}</div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
