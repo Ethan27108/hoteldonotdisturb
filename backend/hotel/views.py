@@ -1627,7 +1627,7 @@ class ViewCleaningLogsView(APIView):
         else:
             return JsonResponse({"error": "Unauthorized role."}, status=403)
 
-        # annotate with readable fields instead of IDs
+        
         logs = list(
             qs.select_related("maid", "room", "room__floor")
               .order_by("-start_time")
@@ -1653,3 +1653,492 @@ class ViewCleaningLogsView(APIView):
             {"context": context, "count": len(logs), "cleaning_logs": logs},
             status=status.HTTP_200_OK
         )
+        
+        
+
+
+
+
+
+
+# Submit Cleaning Report/Log Function (Maid)
+class MaidSubmitCleaningReportView(APIView):
+    """
+    it takes
+      "task_id"
+      "report"     
+      
+
+    only maids can call this
+    the task must belong to the logged-in maid
+    the task must be marked as 'completed'
+    cleaningLog is created once per task using Task's timestamps
+    battery_changed is inferred automatically: if battery_last_checked time is between start_time and finish_time of task then -> battery_changed is true, otherwise -> false
+
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        try:
+            maid = Maid.objects.select_related("user").get(user=request.user)
+        except Maid.DoesNotExist:
+            return JsonResponse({"error": "Only maids can perform this action."}, status=403)
+
+        task_id = request.data.get("task_id")
+        report = request.data.get("report")
+
+
+        if not task_id:
+            return JsonResponse({"error": "task_id is required."}, status=400)
+        try:
+            task_id = int(task_id)
+            if task_id <= 0:
+                return JsonResponse({"error": "task_id must be greater than 0."}, status=400)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "task_id must be an integer."}, status=400)
+
+        if report is None:
+            return JsonResponse({"error": "report is required."}, status=400)
+        report = str(report)
+
+
+        try:
+            task = Task.objects.select_related("room", "maid").get(task_id=task_id)
+        except Task.DoesNotExist:
+            return JsonResponse({"error": "Task not found."}, status=404)
+
+        if task.maid_id != maid.maid_id:
+            return JsonResponse({"error": "Not authorized to write a report for another maid's task."}, status=403)
+
+        if task.status != "completed":
+            return JsonResponse({"error": "Report can be submitted only after the task is completed."}, status=400)
+
+        if not (task.assigned_time and task.start_time and task.finish_time):
+            return JsonResponse({"error": "Task timestamps (assigned/start/finish) are not fully recorded yet."}, status=400)
+
+
+        room = task.room
+        battery_changed = False
+        if room.battery_last_checked and task.start_time and task.finish_time:
+            if task.start_time <= room.battery_last_checked <= task.finish_time:
+                battery_changed = True
+
+
+        log, created = CleaningLog.objects.get_or_create(
+            task=task,
+            maid=maid,
+            room=room,
+            defaults={
+                "report": report,
+                "assigned_time": task.assigned_time,
+                "start_time": task.start_time,
+                "finish_time": task.finish_time,
+                "battery_changed": battery_changed,
+            },
+        )
+
+        if not created:
+ 
+            log.report = report
+            log.battery_changed = battery_changed
+
+            log.save()
+
+        return JsonResponse(
+            {
+                "message": "Cleaning report saved.",
+                "created": created,
+                "log": {
+                    "log_id": log.log_id,
+                    "task_id": task.task_id,
+                    "room_number": room.room_number,
+                    "maid_name": maid.name,
+                    "report": log.report,
+                    "assigned_time": log.assigned_time,
+                    "start_time": log.start_time,
+                    "finish_time": log.finish_time,
+                    "battery_changed": 1 if log.battery_changed else 0,
+                    "created_at": log.created_at,
+                }
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+
+
+#Order Emergency Clean Function (Admin)
+class AdminOrderEmergencyCleaningView(APIView):
+    """
+       it takes:
+      "room_id"                      # OR
+      "room_number"                  # with floor_id or floor_number
+      "floor_id"                     # optional if using room_number
+      "floor_number"                 # optional if using room_number
+      "maid_id"                      # required
+      "battery_change_required"      # required (bool or "yes"/"no")
+    }
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        try:
+            Admin.objects.get(user=request.user)
+        except Admin.DoesNotExist:
+            return JsonResponse({"error": "Only admins can perform this action."}, status=403)
+
+        room_id = request.data.get("room_id")
+        room_number = request.data.get("room_number")
+        floor_id = request.data.get("floor_id")
+        floor_number = request.data.get("floor_number")
+        maid_id = request.data.get("maid_id")
+        battery_flag = request.data.get("battery_change_required")
+
+  
+        if maid_id is None:
+            return JsonResponse({"error": "maid_id is required."}, status=400)
+        try:
+            mid = int(maid_id)
+            if mid <= 0:
+                return JsonResponse({"error": "maid_id must be greater than 0."}, status=400)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "maid_id must be an integer."}, status=400)
+
+        try:
+            maid = Maid.objects.get(maid_id=mid)
+        except Maid.DoesNotExist:
+            return JsonResponse({"error": "Maid not found."}, status=404)
+
+    
+        if battery_flag is None:
+            return JsonResponse({"error": "battery_change_required is required."}, status=400)
+
+        if isinstance(battery_flag, bool):
+            battery_change_required = battery_flag
+        else:
+
+            val = str(battery_flag).strip().lower()
+            if val == "yes":
+                battery_change_required = True
+            elif val == "no":
+                battery_change_required = False
+            else:
+                return JsonResponse(
+                    {"error": "battery_change_required must be true/false or 'yes'/'no'."},
+                    status=400
+                )
+
+
+        room = None
+
+        if room_id is not None:
+            try:
+                rid = int(room_id)
+                if rid <= 0:
+                    return JsonResponse({"error": "room_id must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "room_id must be an integer."}, status=400)
+
+            try:
+                room = Room.objects.select_related("floor").get(room_id=rid)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found."}, status=404)
+
+        else:
+
+            if room_number is None:
+                return JsonResponse(
+                    {"error": "Provide room_id OR (room_number with floor_id or floor_number)."},
+                    status=400
+                )
+
+            try:
+                rnum = int(room_number)
+                if rnum <= 0:
+                    return JsonResponse({"error": "room_number must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "room_number must be an integer."}, status=400)
+
+            floor_by_id = None
+            floor_by_num = None
+
+            if floor_id is not None:
+                try:
+                    fid = int(floor_id)
+                    if fid <= 0:
+                        return JsonResponse({"error": "floor_id must be greater than 0."}, status=400)
+                except (TypeError, ValueError):
+                    return JsonResponse({"error": "floor_id must be an integer."}, status=400)
+                try:
+                    floor_by_id = Floor.objects.get(floor_id=fid)
+                except Floor.DoesNotExist:
+                    return JsonResponse({"error": f"Floor with id {fid} not found."}, status=404)
+
+            if floor_number is not None:
+                try:
+                    fnum = int(floor_number)
+                    if fnum <= 0:
+                        return JsonResponse({"error": "floor_number must be greater than 0."}, status=400)
+                except (TypeError, ValueError):
+                    return JsonResponse({"error": "floor_number must be an integer."}, status=400)
+                try:
+                    floor_by_num = Floor.objects.get(floor_number=fnum)
+                except Floor.DoesNotExist:
+                    return JsonResponse({"error": f"Floor {fnum} not found."}, status=404)
+
+            if not floor_by_id and not floor_by_num:
+                return JsonResponse(
+                    {"error": "When using room_number, provide floor_id or floor_number."},
+                    status=400
+                )
+
+            if floor_by_id and floor_by_num and floor_by_id.floor_id != floor_by_num.floor_id:
+                return JsonResponse({"error": "floor_id and floor_number refer to different floors."}, status=400)
+
+            floor = floor_by_id or floor_by_num
+
+            try:
+                room = Room.objects.select_related("floor").get(floor=floor, room_number=rnum)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found on the specified floor."}, status=404)
+
+        room.status = "emergency_clean"
+        room.save(update_fields=["status", "updated_at"])
+
+
+        now = timezone.now()
+        task = Task.objects.create(
+            room=room,
+            maid=maid,
+            assignment_type="manual",
+            status="pending",
+            assigned_time=now,
+            start_time=None,
+            finish_time=None,
+            battery_change_required=battery_change_required
+        )
+
+        return JsonResponse(
+            {
+                "message": "Emergency cleaning ordered successfully.",
+                "room": {
+                    "room_id": room.room_id,
+                    "room_number": room.room_number,
+                    "floor_number": room.floor.floor_number,
+                    "status": room.status,
+                },
+                "task": {
+                    "task_id": task.task_id,
+                    "maid_id": maid.maid_id,
+                    "maid_name": maid.name,
+                    "assignment_type": task.assignment_type,
+                    "status": task.status,
+                    "assigned_time": task.assigned_time,
+                    "start_time": task.start_time,
+                    "finish_time": task.finish_time,
+                    "battery_change_required": task.battery_change_required,
+                }
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+
+
+#Receive Button Signal Function (Guest)
+class ButtonRoomStatusUpdateView(APIView):
+    """
+      it takes:
+      "room_id"
+      "status"
+      "room_number" optional, only if not using room_id, must include floor_number with it
+      "floor_number" optional, only if using room_number
+
+
+    finds the room based on room_id OR (room_number + floor_number)
+    validates status against Room.status choices
+    updates Room.status
+    creates a RoomStatusLog entry with changed_by="guest"
+    """
+
+
+    permission_classes = []
+
+    def post(self, request):
+        room_id = request.data.get("room_id")
+        room_number = request.data.get("room_number")
+        floor_number = request.data.get("floor_number")
+        new_status = request.data.get("status")
+
+
+        if not new_status:
+            return JsonResponse({"error": "status is required."}, status=400)
+
+        new_status = str(new_status).strip()
+
+        allowed_statuses = {
+            "clean",
+            "do_not_disturb",
+            "cleaning_in_progress",
+            "emergency_clean",
+            "dirty",
+        }
+
+        if new_status not in allowed_statuses:
+            return JsonResponse(
+                {
+                    "error": "Invalid status.",
+                    "allowed_statuses": list(allowed_statuses),
+                },
+                status=400,
+            )
+
+
+        room = None
+
+        if room_id is not None:
+
+            try:
+                rid = int(room_id)
+                if rid <= 0:
+                    return JsonResponse({"error": "room_id must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "room_id must be an integer."}, status=400)
+
+            try:
+                room = Room.objects.select_related("floor").get(room_id=rid)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found."}, status=404)
+
+        else:
+
+            if room_number is None or floor_number is None:
+                return JsonResponse(
+                    {"error": "Provide room_id OR (room_number AND floor_number)."},
+                    status=400,
+                )
+
+            try:
+                rnum = int(room_number)
+                if rnum <= 0:
+                    return JsonResponse({"error": "room_number must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "room_number must be an integer."}, status=400)
+
+            try:
+                fnum = int(floor_number)
+                if fnum <= 0:
+                    return JsonResponse({"error": "floor_number must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "floor_number must be an integer."}, status=400)
+
+            try:
+                floor = Floor.objects.get(floor_number=fnum)
+            except Floor.DoesNotExist:
+                return JsonResponse({"error": f"Floor {fnum} not found."}, status=404)
+
+            try:
+                room = Room.objects.select_related("floor").get(floor=floor, room_number=rnum)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found on the specified floor."}, status=404)
+
+
+        room.status = new_status
+        room.save(update_fields=["status", "updated_at"])
+
+
+        log = RoomStatusLog.objects.create(
+            room=room,
+            status=new_status,
+            changed_by="guest",
+        )
+
+        return JsonResponse(
+            {
+                "message": "Room status updated from button.",
+                "room": {
+                    "room_id": room.room_id,
+                    "room_number": room.room_number,
+                    "floor_number": room.floor.floor_number,
+                    "status": room.status,
+                },
+                "log": {
+                    "room_log_id": log.room_log_id,
+                    "status": log.status,
+                    "changed_by": log.changed_by,
+                    "timestamp": log.timestamp,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+
+
+#Send Room Status to Button Panel Function (Button reads room status from the database)
+class DeviceGetRoomStatus(APIView):
+    """
+      it takes (POST):
+      - "room_id" OR
+      - "room_number" + "floor_number"
+    """
+    permission_classes = []
+
+    def post(self, request):
+        room_id = request.data.get("room_id")
+        room_number = request.data.get("room_number")
+        floor_number = request.data.get("floor_number")
+
+        if room_id:
+            try:
+                rid = int(room_id)
+                if rid <= 0:
+                    return JsonResponse({"error": "room_id must be > 0"}, status=400)
+            except:
+                return JsonResponse({"error": "room_id must be an integer"}, status=400)
+
+            try:
+                room = Room.objects.get(room_id=rid)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found"}, status=404)
+
+        elif room_number and floor_number:
+            try:
+                rn = int(room_number)
+                fn = int(floor_number)
+                if rn <= 0 or fn <= 0:
+                    return JsonResponse(
+                        {"error": "room_number and floor_number must be > 0"},
+                        status=400
+                    )
+            except:
+                return JsonResponse(
+                    {"error": "room_number and floor_number must be integers"},
+                    status=400
+                )
+
+            try:
+                floor = Floor.objects.get(floor_number=fn)
+            except Floor.DoesNotExist:
+                return JsonResponse({"error": "Floor not found"}, status=404)
+
+            try:
+                room = Room.objects.get(room_number=rn, floor=floor)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found"}, status=404)
+
+        else:
+            return JsonResponse(
+                {"error": "Provide either room_id OR room_number + floor_number"},
+                status=400
+            )
+
+        return JsonResponse({
+            "room_id": room.room_id,
+            "room_number": room.room_number,
+            "floor_number": room.floor.floor_number,
+            "status": room.status,
+            "battery_indicator": room.battery_indicator,
+            "updated_at": room.updated_at,
+        }, status=200)

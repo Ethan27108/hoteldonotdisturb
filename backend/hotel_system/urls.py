@@ -30,6 +30,10 @@ from hotel.views import AdminViewMaidProfileView
 from hotel.views import AdminGetMaidStatsView
 from hotel.views import AdminViewRoomStatusLogsView
 from hotel.views import ViewCleaningLogsView
+from hotel.views import MaidSubmitCleaningReportView
+from hotel.views import AdminOrderEmergencyCleaningView
+from hotel.views import ButtonRoomStatusUpdateView
+from hotel.views import DeviceGetRoomStatus
 
 urlpatterns = [
     path('', lambda request: HttpResponse("Backend up")),
@@ -65,8 +69,10 @@ urlpatterns = [
     path("api/admin/maidStats/", AdminGetMaidStatsView.as_view(), name="admin-maid-stats"),
     path("api/admin/viewRoomStatusLogs/", AdminViewRoomStatusLogsView.as_view(), name="admin-view-room-status-logs"),
     path("api/cleaningLogs/", ViewCleaningLogsView.as_view(), name="view-cleaning-logs"),
-
-    
+    path("api/maid/writeReport/", MaidSubmitCleaningReportView.as_view(), name="maid-write-report"),
+    path("api/admin/emergencyCleaning/", AdminOrderEmergencyCleaningView.as_view(), name="admin-emergency-cleaning"),
+    path("api/button/", ButtonRoomStatusUpdateView.as_view(), name="button-room-status-update"),
+    path("api/roomStatus/", DeviceGetRoomStatus.as_view(), name="device-room-status",)
     
     
 ]
