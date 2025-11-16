@@ -1,73 +1,94 @@
-// src/Pages/Admin/AdminMaidActivity.tsx
-import { useState, useEffect } from 'react';
-import { Plus, User, MessageSquare } from 'lucide-react';
-import { api, Maid } from 'lib/api';
-import { CreateMaidForm } from 'Components/Admin/CreateMaidForm';
-import { MaidModal } from 'Components/Admin/MaidModal';
+import React, { useEffect, useState } from 'react'
+import { Plus, Trash2, Eye } from 'lucide-react'
 
-export function AdminMaidActivity() {
-  const [maids, setMaids] = useState<Maid[]>([]);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedMaid, setSelectedMaid] = useState<Maid | null>(null);
-  const [loading, setLoading] = useState(true);
+interface Maid {
+  maid_id: string
+  name: string
+  user__is_active: boolean
+}
+
+interface Props {
+  token: string | null
+}
+
+const AdminMaidActivity: React.FC<Props> = ({ token }) => {
+  const [maids, setMaids] = useState<Maid[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchMaids = async () => {
+    if (!token) {
+      setLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/listMaids/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
+      })
+
+      const data = await response.json()
+      setMaids(data.maids && Array.isArray(data.maids) ? data.maids : [])
+    } catch (e) {
+      console.error('Error loading maids:', e)
+      setMaids([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    loadMaids();
-  }, []);
-
-  const loadMaids = async () => {
-    try {
-      const data = await api.getMaids();
-      if (data) {
-        setMaids(data);
-      }
-    } catch (error) {
-      console.error('Error loading maids:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateMaid = async (maidData: { name: string }) => {
-    try {
-      const data = await api.createMaid(maidData.name);
-      if (data) {
-        setMaids([data, ...maids]);
-      }
-    } catch (error) {
-      console.error('Error creating maid:', error);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'bg-green-100 text-green-800';
-      case 'Inactive':
-        return 'bg-gray-100 text-gray-800';
-      case 'On Break':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+    if (token) fetchMaids()
+  }, [token])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading maids...</p>
-        </div>
+      <div className="center">
+        <div className="loader"></div>
+        <p>Loading maids...</p>
       </div>
-    );
+    )
   }
 
   return (
-    <div>
-      {/* JSX same as your existing MaidActivity component */}
+    <div className="maid-activity">
+      <header className="maid-header">
+        <h2>Maid Activity</h2>
+        <button className="btn primary">
+          <Plus size={16} /> Add Maid
+        </button>
+      </header>
+
+      <div className="maid-list">
+        {maids.length === 0 ? (
+          <div className="empty">No maids available</div>
+        ) : (
+          maids.map((m) => (
+            <div key={m.maid_id} className="maid-card">
+              <div className="maid-info">
+                <div className="maid-name">{m.name}</div>
+                <div className={`maid-status status-${m.user__is_active ? 'active' : 'inactive'}`}>
+                  {m.user__is_active ? 'Active' : 'Inactive'}
+                </div>
+              </div>
+              <div className="maid-actions">
+                <button className="btn secondary" title="View Stats">
+                  <Eye size={16} />
+                </button>
+                <button className="btn red" title="Remove Maid">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
-  );
+  )
 }
 
-export default AdminMaidActivity;
+export default AdminMaidActivity

@@ -2212,3 +2212,50 @@ class DeviceGetRoomStatus(APIView):
             "battery_indicator": room.battery_indicator,
             "updated_at": room.updated_at,
         }, status=200)
+
+class AdminListFloorsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            Admin.objects.get(user=request.user)
+        except Admin.DoesNotExist:
+            return JsonResponse({"error": "Only admins can perform this action."}, status=403)
+
+        floors = list(
+            Floor.objects.all()
+            .order_by("floor_number")
+            .values("floor_id", "floor_number", "created_at", "updated_at")
+        )
+
+        return JsonResponse(
+            {"floors": floors},
+            status=status.HTTP_200_OK
+        )
+
+class AdminListMaidsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            Admin.objects.get(user=request.user)
+        except Admin.DoesNotExist:
+            return JsonResponse({"error": "Only admins can perform this action."}, status=403)
+
+        maids = list(
+            Maid.objects.select_related("user")
+            .all()
+            .order_by("name")
+            .values(
+                "maid_id",
+                "name",
+                "user__is_active",
+                "created_at",
+                "updated_at",
+            )
+        )
+
+        return JsonResponse(
+            {"maids": maids},
+            status=status.HTTP_200_OK
+        )

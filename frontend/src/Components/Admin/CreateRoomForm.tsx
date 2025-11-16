@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { X } from "lucide-react";
 
 interface CreateRoomFormProps {
@@ -6,13 +6,13 @@ interface CreateRoomFormProps {
   floor_id: string;
   onSubmit: (roomData: {
     room_number: string;
-    floor_id: string;
     room_type: string;
     status: string;
+    floor_id: string;
   }) => void;
 }
 
-export function CreateRoomForm({ onClose, floor_id, onSubmit }: CreateRoomFormProps) {
+const CreateRoomForm = ({ onClose, floor_id, onSubmit }: CreateRoomFormProps) => {
   const [formData, setFormData] = useState({
     room_number: "",
     room_type: "Standard",
@@ -21,31 +21,21 @@ export function CreateRoomForm({ onClose, floor_id, onSubmit }: CreateRoomFormPr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    console.log("Submitting room:", formData);
-
-    onSubmit({
-      room_number: formData.room_number,
-      room_type: formData.room_type,
-      status: formData.status,
-      floor_id: floor_id,
-    });
-
+    onSubmit({ ...formData, floor_id });
     onClose();
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-        
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-2xl font-bold text-gray-900">Create New Room</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={24} />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-
-          {/* ROOM NUMBER */}
           <input
             type="text"
             required
@@ -55,7 +45,6 @@ export function CreateRoomForm({ onClose, floor_id, onSubmit }: CreateRoomFormPr
             className="w-full px-3 py-2 border rounded-lg"
           />
 
-          {/* ROOM TYPE */}
           <select
             value={formData.room_type}
             onChange={(e) => setFormData({ ...formData, room_type: e.target.value })}
@@ -66,7 +55,6 @@ export function CreateRoomForm({ onClose, floor_id, onSubmit }: CreateRoomFormPr
             <option>Suite</option>
           </select>
 
-          {/* STATUS */}
           <select
             value={formData.status}
             onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -85,9 +73,10 @@ export function CreateRoomForm({ onClose, floor_id, onSubmit }: CreateRoomFormPr
               Create Room
             </button>
           </div>
-
         </form>
       </div>
     </div>
   );
-}
+};
+
+export default CreateRoomForm;
