@@ -22,7 +22,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from datetime import datetime
 from django.utils.dateparse import parse_date
-
+from datetime import timedelta
 
 
 #Login Functions (Maid + Admin)
@@ -227,10 +227,21 @@ class CleanStartView(APIView):
         task.start_time = timezone.now()
         task.save()
 
+        # set battery_last_checked to 3 seconds after start_time
+        if task.start_time:
+            room.battery_last_checked = task.start_time + timedelta(seconds=3)
+            room.save(update_fields=["battery_last_checked"])
+
         return JsonResponse(
-            {"message": "Cleaning started", "task_id": task.task_id, "status": task.status, "start_time": task.start_time},
+            {
+                "message": "Cleaning started",
+                "task_id": task.task_id,
+                "status": task.status,
+                "start_time": task.start_time,
+            },
             status=status.HTTP_200_OK,
         )
+
         
 #Clean End Function (Maid)
 class CleanEndView(APIView):
@@ -1720,9 +1731,11 @@ class MaidSubmitCleaningReportView(APIView):
 
         room = task.room
         battery_changed = False
-        if room.battery_last_checked and task.start_time and task.finish_time:
-            if task.start_time <= room.battery_last_checked <= task.finish_time:
-                battery_changed = True
+
+        if task.battery_change_required:
+            if room.battery_last_checked and task.start_time and task.finish_time:
+                if task.start_time <= room.battery_last_checked <= task.finish_time:
+                    battery_changed = True
 
 
         log, created = CleaningLog.objects.get_or_create(
@@ -1764,6 +1777,7 @@ class MaidSubmitCleaningReportView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
 
 
 
