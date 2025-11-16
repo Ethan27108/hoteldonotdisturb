@@ -563,96 +563,108 @@ class AdminViewFloorView(APIView):
 class AdminAddRoomView(APIView):
     permission_classes = [IsAuthenticated]
 
+    FRONTEND_TO_BACKEND_STATUS = {
+        "Available": "clean",
+        "Cleaning": "cleaning_in_progress",
+        "Dirty": "dirty",
+        "Do Not Disturb": "do_not_disturb",
+        "Emergency": "emergency_clean",
+    }
+
+    BACKEND_TO_FRONTEND_STATUS = {
+        "clean": "Available",
+        "cleaning_in_progress": "Cleaning",
+        "dirty": "Dirty",
+        "do_not_disturb": "Do Not Disturb",
+        "emergency_clean": "Emergency",
+    }
+
     def post(self, request):
-    
+
+        # Must be admin
         try:
             Admin.objects.get(user=request.user)
         except Admin.DoesNotExist:
             return JsonResponse({"error": "Only admins can perform this action."}, status=403)
 
+        # Required fields
         room_number = request.data.get("room_number")
         floor_id = request.data.get("floor_id")
         floor_number = request.data.get("floor_number")
 
-    
+        # Optional frontend fields
+        grid_x = int(request.data.get("grid_x", 0))
+        grid_y = int(request.data.get("grid_y", 0))
+        room_type = request.data.get("room_type", "Standard")
+        frontend_status = request.data.get("status", "Available")
+
+        backend_status = self.FRONTEND_TO_BACKEND_STATUS.get(frontend_status, "clean")
+
+        # Validate room number
         if room_number is None:
             return JsonResponse({"error": "room_number is required."}, status=400)
         try:
             room_number = int(room_number)
             if room_number <= 0:
                 return JsonResponse({"error": "room_number must be greater than 0."}, status=400)
-        except (TypeError, ValueError):
+        except:
             return JsonResponse({"error": "room_number must be an integer."}, status=400)
 
-    
-        if floor_id is None and floor_number is None:
-            return JsonResponse({"error": "Provide floor_id or floor_number."}, status=400)
-
-
-        floor_by_id = None
-        floor_by_number = None
-
+        # Resolve floor
+        floor = None
         if floor_id is not None:
             try:
-                floor_id_int = int(floor_id)
-                if floor_id_int <= 0:
-                    return JsonResponse({"error": "floor_id must be greater than 0."}, status=400)
-            except (TypeError, ValueError):
-                return JsonResponse({"error": "floor_id must be an integer."}, status=400)
+                floor = Floor.objects.get(floor_id=int(floor_id))
+            except:
+                return JsonResponse({"error": f"Floor with id {floor_id} not found."}, status=404)
+
+        if floor is None and floor_number is not None:
             try:
-                floor_by_id = Floor.objects.get(floor_id=floor_id_int)
-            except Floor.DoesNotExist:
-                return JsonResponse({"error": f"Floor with id {floor_id_int} not found."}, status=404)
+                floor = Floor.objects.get(floor_number=int(floor_number))
+            except:
+                return JsonResponse({"error": f"Floor {floor_number} not found."}, status=404)
 
-        if floor_number is not None:
-            try:
-                floor_number_int = int(floor_number)
-                if floor_number_int <= 0:
-                    return JsonResponse({"error": "floor_number must be greater than 0."}, status=400)
-            except (TypeError, ValueError):
-                return JsonResponse({"error": "floor_number must be an integer."}, status=400)
-            try:
-                floor_by_number = Floor.objects.get(floor_number=floor_number_int)
-            except Floor.DoesNotExist:
-                return JsonResponse({"error": f"Floor {floor_number_int} not found."}, status=404)
+        if floor is None:
+            return JsonResponse({"error": "Provide floor_id or floor_number."}, status=400)
 
-
-        if floor_by_id and floor_by_number and floor_by_id.floor_id != floor_by_number.floor_id:
-            return JsonResponse(
-                {"error": "floor_id and floor_number refer to different floors."},
-                status=400
-            )
-
-        floor = floor_by_id or floor_by_number
-
+        # Prevent duplicates
         if Room.objects.filter(floor=floor, room_number=room_number).exists():
             return JsonResponse(
                 {"error": f"Room {room_number} already exists on floor {floor.floor_number}."},
                 status=409
             )
 
+        # Create room properly
         room = Room.objects.create(
             room_number=room_number,
             floor=floor,
-            status="clean",
+            status=backend_status,
+            room_type=room_type,
+            grid_x=grid_x,
+            grid_y=grid_y,
         )
 
+        # Response formatted for frontend
         return JsonResponse(
             {
                 "message": "Room created successfully.",
                 "room": {
-                    "room_id": room.room_id,
+                    "id": room.room_id,
                     "room_number": room.room_number,
+                    "room_type": room.room_type,
+                    "status": self.BACKEND_TO_FRONTEND_STATUS[room.status],
+                    "grid_x": room.grid_x,
+                    "grid_y": room.grid_y,
+                    "battery_level": room.battery_indicator,
+                    "assigned_maid_id": room.assigned_maid_id,
                     "floor_id": floor.floor_id,
                     "floor_number": floor.floor_number,
-                    "status": room.status,
-                    "battery_indicator": room.battery_indicator,
-                    "battery_last_checked": room.battery_last_checked,
                     "updated_at": room.updated_at,
-                },
+                }
             },
-            status=status.HTTP_201_CREATED
+            status=201
         )
+
 
 
 
@@ -685,6 +697,10 @@ class AdminEditRoomView(APIView):
         new_floor_number = request.data.get("floor_number")
         new_status = request.data.get("status")
 
+        # >>> NEW FIELDS FOR GRID LAYOUT (frontend uses them)
+        new_grid_x = request.data.get("grid_x")
+        new_grid_y = request.data.get("grid_y")
+        # <<< END OF NEW FIELDS
 
         target_floor = room.floor 
 
@@ -745,6 +761,14 @@ class AdminEditRoomView(APIView):
         room.room_number = final_room_number
         if new_status is not None:
             room.status = new_status
+
+        # >>> ADD GRID POSITION UPDATE (only if provided)
+        if new_grid_x is not None:
+            room.grid_x = int(new_grid_x)
+        if new_grid_y is not None:
+            room.grid_y = int(new_grid_y)
+        # <<< END GRID UPDATE
+
         room.save()
 
         return JsonResponse(
@@ -756,13 +780,19 @@ class AdminEditRoomView(APIView):
                     "floor_id": room.floor.floor_id,
                     "floor_number": room.floor.floor_number,
                     "status": room.status,
-                    "battery_indicator": room.battery_indicator,        # unchanged
-                    "battery_last_checked": room.battery_last_checked,  # unchanged
+                    "battery_indicator": room.battery_indicator,
+                    "battery_last_checked": room.battery_last_checked,
                     "updated_at": room.updated_at,
+
+                    # >>> ADD THESE SO FRONTEND CAN REPOSITION ROOM
+                    "grid_x": getattr(room, "grid_x", None),
+                    "grid_y": getattr(room, "grid_y", None),
+                    # <<< END NEW FIELDS
                 },
             },
             status=status.HTTP_200_OK
         )
+
 
 
 #Delete Room Function (Admin) - accepts either room_id or room_number, and either floor_id or floor_number
@@ -888,6 +918,44 @@ class AdminViewRoomView(APIView):
         floor_id = request.data.get("floor_id")
         floor_number = request.data.get("floor_number")
 
+        # ------------------------------------------------------------
+        # ADDED: If ONLY floor_id is provided → return all rooms
+        # ------------------------------------------------------------
+        if floor_id is not None and room_id is None and room_number is None and floor_number is None:
+            try:
+                fid = int(floor_id)
+            except:
+                return JsonResponse({"error": "floor_id must be integer"}, status=400)
+
+            try:
+                floor = Floor.objects.get(floor_id=fid)
+            except Floor.DoesNotExist:
+                return JsonResponse({"error": f"Floor {fid} not found."}, status=404)
+
+            rooms = Room.objects.filter(floor=floor).order_by("room_number")
+
+            data = []
+            for r in rooms:
+                data.append({
+                    "id": str(r.room_id),
+                    "room_number": str(r.room_number),
+                    "floor_id": str(floor.floor_id),
+                    "status": r.status,
+
+                    # Safe fallback in case your model doesn't have these yet
+                    "grid_x": getattr(r, "grid_x", 0),
+                    "grid_y": getattr(r, "grid_y", 0),
+                    "battery_level": getattr(r, "battery_indicator", 100),
+
+                    "assigned_maid_id": None,
+                })
+
+            return JsonResponse(data, safe=False, status=200)
+        # ------------------------------------------------------------
+        # END OF ADDED BLOCK
+        # ------------------------------------------------------------
+
+        # Your ORIGINAL code continues normally:
         room = None
 
         if room_id is not None:
@@ -960,6 +1028,7 @@ class AdminViewRoomView(APIView):
             except Room.DoesNotExist:
                 return JsonResponse({"error": "Room not found on the specified floor."}, status=404)
 
+        # Final single-room response (unchanged)
         return JsonResponse(
             {
                 "room": {
@@ -972,6 +1041,7 @@ class AdminViewRoomView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
 
 
 #Admin Edit Profile Function (Admin) - the admin can edit his own profile info
