@@ -818,26 +818,41 @@ class AdminAddRoomView(APIView):
 
     def post(self, request):
 
-        # Must be admin
+
         try:
             Admin.objects.get(user=request.user)
         except Admin.DoesNotExist:
             return JsonResponse({"error": "Only admins can perform this action."}, status=403)
 
-        # Required fields
+
         room_number = request.data.get("room_number")
         floor_id = request.data.get("floor_id")
         floor_number = request.data.get("floor_number")
 
-        # Optional frontend fields
-        grid_x = int(request.data.get("grid_x", 0))
-        grid_y = int(request.data.get("grid_y", 0))
+
+        raw_grid_x = request.data.get("grid_x")
+        raw_grid_y = request.data.get("grid_y")
         room_type = request.data.get("room_type", "Standard")
         frontend_status = request.data.get("status", "Available")
 
         backend_status = self.FRONTEND_TO_BACKEND_STATUS.get(frontend_status, "clean")
 
-        # Validate room number
+
+        grid_x = None
+        if raw_grid_x not in (None, ""):
+            try:
+                grid_x = int(raw_grid_x)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "grid_x must be an integer if provided."}, status=400)
+
+        grid_y = None
+        if raw_grid_y not in (None, ""):
+            try:
+                grid_y = int(raw_grid_y)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "grid_y must be an integer if provided."}, status=400)
+
+
         if room_number is None:
             return JsonResponse({"error": "room_number is required."}, status=400)
         try:
@@ -847,7 +862,7 @@ class AdminAddRoomView(APIView):
         except:
             return JsonResponse({"error": "room_number must be an integer."}, status=400)
 
-        # Resolve floor
+
         floor = None
         if floor_id is not None:
             try:
@@ -871,17 +886,17 @@ class AdminAddRoomView(APIView):
                 status=409
             )
 
-        # Create room properly
+
         room = Room.objects.create(
             room_number=room_number,
             floor=floor,
             status=backend_status,
-            room_type=room_type,
-            grid_x=grid_x,
-            grid_y=grid_y,
+            room_type=room_type,    
+            pos_x=grid_x,            
+            pos_y=grid_y,
         )
 
-        # Response formatted for frontend
+
         return JsonResponse(
             {
                 "message": "Room created successfully.",
@@ -890,8 +905,8 @@ class AdminAddRoomView(APIView):
                     "room_number": room.room_number,
                     "room_type": room.room_type,
                     "status": self.BACKEND_TO_FRONTEND_STATUS[room.status],
-                    "grid_x": room.grid_x,
-                    "grid_y": room.grid_y,
+                    "grid_x": room.pos_x,                
+                    "grid_y": room.pos_y,
                     "battery_level": room.battery_indicator,
                     "assigned_maid_id": room.assigned_maid_id,
                     "floor_id": floor.floor_id,
@@ -903,12 +918,10 @@ class AdminAddRoomView(APIView):
         )
 
 
-
-
-
 #Edit Room Function (Admin) - only accepts room_id (because we are using room_number for the edit) - can edit the following fields: room_number, status, (floor_id or floor_number)
 
 VALID_ROOM_STATUSES = {"clean", "do_not_disturb", "cleaning_in_progress", "emergency_clean", "dirty"}
+
 class AdminEditRoomView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -928,16 +941,15 @@ class AdminEditRoomView(APIView):
         except Room.DoesNotExist:
             return JsonResponse({"error": "Room not found."}, status=404)
 
-
         new_room_number = request.data.get("room_number")
         new_floor_id = request.data.get("floor_id")
         new_floor_number = request.data.get("floor_number")
         new_status = request.data.get("status")
 
-        # >>> NEW FIELDS FOR GRID LAYOUT (frontend uses them)
+
         new_grid_x = request.data.get("grid_x")
         new_grid_y = request.data.get("grid_y")
-        # <<< END OF NEW FIELDS
+
 
         target_floor = room.floor 
 
@@ -999,15 +1011,23 @@ class AdminEditRoomView(APIView):
         if new_status is not None:
             room.status = new_status
 
-        # >>> ADD GRID POSITION UPDATE (only if provided)
-        if new_grid_x is not None:
-            room.grid_x = int(new_grid_x)
-        if new_grid_y is not None:
-            room.grid_y = int(new_grid_y)
-        # <<< END GRID UPDATE
+
+        if new_grid_x not in (None, ""):
+            try:
+                room.pos_x = int(new_grid_x)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "grid_x must be an integer if provided."}, status=400)
+
+        if new_grid_y not in (None, ""):
+            try:
+                room.pos_y = int(new_grid_y)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "grid_y must be an integer if provided."}, status=400)
+
 
         room.save()
         rebalance_all_pending_tasks()
+
         return JsonResponse(
             {
                 "message": "Room updated successfully.",
@@ -1021,10 +1041,9 @@ class AdminEditRoomView(APIView):
                     "battery_last_checked": room.battery_last_checked,
                     "updated_at": room.updated_at,
 
-                    # >>> ADD THESE SO FRONTEND CAN REPOSITION ROOM
-                    "grid_x": getattr(room, "grid_x", None),
-                    "grid_y": getattr(room, "grid_y", None),
-                    # <<< END NEW FIELDS
+               
+                    "grid_x": room.pos_x,
+                    "grid_y": room.pos_y,
                 },
             },
             status=status.HTTP_200_OK

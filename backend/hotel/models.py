@@ -56,13 +56,16 @@ class Room(models.Model):
             ("emergency_clean", "Emergency Clean"),
             ("dirty", "Dirty"),
         ],
-        default="clean",
+        default="clean"
     )
 
     battery_indicator = models.IntegerField(default=100)
     battery_last_checked = models.DateTimeField(null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
+    pos_x = models.IntegerField(null=True, blank=True)
+    pos_y = models.IntegerField(null=True, blank=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class Task(models.Model):
