@@ -151,30 +151,3 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
-
-# ---------------------------------------------------------
-# CORS FIXES (required for frontend → backend communication)
-# ---------------------------------------------------------
-
-# Allow React dev server to talk to Django
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
-
-# Required to allow POST, PUT, DELETE, OPTIONS requests
-CORS_ALLOW_ALL_HEADERS = True
-CORS_ALLOW_CREDENTIALS = True
-
-# NEW: Allow all methods so POST to /api/admin/addRoom works
-CORS_ALLOW_METHODS = [
-    "DELETE",
-    "GET",
-    "OPTIONS",
-    "PATCH",
-    "POST",
-    "PUT",
-]
-
-# Django must respond to OPTIONS preflight instead of blocking
-CORS_ALLOW_ALL_ORIGINS = True
-

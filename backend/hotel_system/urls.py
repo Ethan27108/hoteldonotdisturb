@@ -36,6 +36,10 @@ from hotel.views import MaidSubmitCleaningReportView
 from hotel.views import AdminOrderEmergencyCleaningView
 from hotel.views import ButtonRoomStatusUpdateView
 from hotel.views import DeviceGetRoomStatus
+from hotel.views import MaidTaskQueueView
+from hotel.views import MaidShiftStartView
+from hotel.views import MaidShiftEndView
+
 
 urlpatterns = [
     path('', lambda request: HttpResponse("Backend up")),
@@ -77,4 +81,9 @@ urlpatterns = [
     path("api/admin/emergencyCleaning/", AdminOrderEmergencyCleaningView.as_view(), name="admin-emergency-cleaning"),
     path("api/button/", ButtonRoomStatusUpdateView.as_view(), name="button-room-status-update"),
     path("api/roomStatus/", DeviceGetRoomStatus.as_view(), name="device-room-status"),
+    path("api/maid/tasks/", MaidTaskQueueView.as_view(), name="maid-task-queue"),
+    path("api/maid/shiftStart/", MaidShiftStartView.as_view(), name="maid-shift-start"),
+    path("api/maid/shiftEnd/", MaidShiftEndView.as_view(), name="maid-shift-end"),
+
+
 ]

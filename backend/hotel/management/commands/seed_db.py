@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from hotel.models import Admin, Maid, Floor, Room, Task, CleaningLog, RoomStatusLog, MaidStat
-from faker import Faker
+from faker import Faker # type: ignore
 import random
 from datetime import timedelta
 

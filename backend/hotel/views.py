@@ -24,6 +24,55 @@ from datetime import datetime
 from django.utils.dateparse import parse_date
 from datetime import timedelta
 
+from .assignment import (
+    assign_room_to_best_maid,
+    rebalance_pending_tasks_for_maid,
+    rebalance_all_pending_tasks,
+    mark_stale_rooms_dirty,
+)
+
+from .stats import update_maid_stats_for_day, get_overall_stats_for_maid
+
+#helper function to format stats decimals
+def _format_daily_stat_row(row: dict) -> dict:
+
+    float_fields = [
+        "avg_rooms_per_shift",
+        "avg_time_per_room",
+        "working_hours",
+        "active_cleaning_hours",
+        "completion_rate",
+        "break_usage",
+        "on_time_shift_attendance",
+    ]
+
+    for f in float_fields:
+        if row.get(f) is not None:
+            row[f] = float(f"{row[f]:.2f}")
+
+    return row
+
+
+def _format_overall_stats_row(row: dict) -> dict:
+
+    float_fields = [
+        "total_active_cleaning_hours",
+        "total_working_hours",
+        "avg_rooms_per_shift_overall",
+        "avg_time_per_room_overall",
+        "overall_completion_rate",
+        "avg_on_time_shift_attendance",
+        "avg_break_usage",
+    ]
+
+    for f in float_fields:
+        if row.get(f) is not None:
+            row[f] = float(f"{row[f]:.2f}")
+
+    return row
+
+
+
 
 #Login Functions (Maid + Admin)
 class AdminLoginView(APIView):
@@ -56,7 +105,7 @@ class MaidLoginView(APIView):
         return JsonResponse({"error": "Invalid credentials or not a Maid", "success":False}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-#Logout Function (Miad + Admin)
+#Logout Function (Maid + Admin)
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -76,6 +125,10 @@ class DeactivateAccountView(APIView):
 
     def post(self, request):
         user = request.user
+
+        maid = Maid.objects.filter(user=user).first()
+
+
         user.is_active = False
         user.save()
 
@@ -83,6 +136,9 @@ class DeactivateAccountView(APIView):
             user.auth_token.delete()
 
         django_logout(request)
+
+        if maid is not None:
+            rebalance_pending_tasks_for_maid(maid)
 
         return JsonResponse(
             {"message": "Account deactivated successfully"},
@@ -201,22 +257,100 @@ class GetRoomsByMaidIdView(APIView):
             status=status.HTTP_200_OK
         )
         
-#Clean Start Function (Maid)
+#Clean Start Function (Maid) - accepts either room_id or room_number, and either floor_id or floor_number
 class CleanStartView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         maid_id = request.data.get("maid_id")
-        room_number = request.data.get("room_number")
 
-        if not maid_id or not room_number:
-            return JsonResponse({"error": "maid_id and room_number are required"}, status=status.HTTP_400_BAD_REQUEST)
+        room_id = request.data.get("room_id")
+        room_number = request.data.get("room_number")
+        floor_id = request.data.get("floor_id")
+        floor_number = request.data.get("floor_number")
+
+        if not maid_id:
+            return JsonResponse({"error": "maid_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not room_id and not room_number:
+            return JsonResponse(
+                {"error": "You must provide either room_id OR (room_number + floor_id/floor_number)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
-            maid = Maid.objects.get(maid_id=maid_id)
-            room = Room.objects.get(room_number=room_number)
-        except (Maid.DoesNotExist, Room.DoesNotExist):
-            return JsonResponse({"error": "Invalid maid_id or room_number"}, status=status.HTTP_404_NOT_FOUND)
+            mid = int(maid_id)
+            if mid <= 0:
+                return JsonResponse({"error": "maid_id must be greater than 0."}, status=400)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "maid_id must be an integer."}, status=400)
+
+        try:
+            maid = Maid.objects.get(maid_id=mid)
+        except Maid.DoesNotExist:
+            return JsonResponse({"error": "Maid not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        room = None
+
+        if room_id:
+
+            try:
+                rid = int(room_id)
+                if rid <= 0:
+                    return JsonResponse({"error": "room_id must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "room_id must be an integer."}, status=400)
+
+            try:
+                room = Room.objects.select_related("floor").get(room_id=rid)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        else:
+            if not floor_id and not floor_number:
+                return JsonResponse(
+                    {"error": "When using room_number, you must also provide floor_id or floor_number."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                rnum = int(room_number)
+                if rnum <= 0:
+                    return JsonResponse({"error": "room_number must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "room_number must be an integer."}, status=400)
+
+            floor = None
+            if floor_id:
+                try:
+                    fid = int(floor_id)
+                    if fid <= 0:
+                        return JsonResponse({"error": "floor_id must be greater than 0."}, status=400)
+                except (TypeError, ValueError):
+                    return JsonResponse({"error": "floor_id must be an integer."}, status=400)
+
+                try:
+                    floor = Floor.objects.get(floor_id=fid)
+                except Floor.DoesNotExist:
+                    return JsonResponse({"error": "Floor not found."}, status=404)
+            else:
+                try:
+                    fnum = int(floor_number)
+                    if fnum <= 0:
+                        return JsonResponse({"error": "floor_number must be greater than 0."}, status=400)
+                except (TypeError, ValueError):
+                    return JsonResponse({"error": "floor_number must be an integer."}, status=400)
+
+                try:
+                    floor = Floor.objects.get(floor_number=fnum)
+                except Floor.DoesNotExist:
+                    return JsonResponse({"error": f"Floor {fnum} not found."}, status=404)
+
+            try:
+                room = Room.objects.get(room_number=rnum, floor=floor)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found on the specified floor."}, status=404)
+
 
         try:
             task = Task.objects.get(maid=maid, room=room, status="pending")
@@ -227,7 +361,6 @@ class CleanStartView(APIView):
         task.start_time = timezone.now()
         task.save()
 
-        # set battery_last_checked to 3 seconds after start_time
         if task.start_time:
             room.battery_last_checked = task.start_time + timedelta(seconds=3)
             room.save(update_fields=["battery_last_checked"])
@@ -242,35 +375,109 @@ class CleanStartView(APIView):
             status=status.HTTP_200_OK,
         )
 
-        
-#Clean End Function (Maid)
+#Clean End Function (Maid) - accepts either room_id or room_number, and either floor_id or floor_number
 class CleanEndView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         maid_id = request.data.get("maid_id")
+
+        room_id = request.data.get("room_id")
         room_number = request.data.get("room_number")
+        floor_id = request.data.get("floor_id")
+        floor_number = request.data.get("floor_number")
         comment = request.data.get("comment")
 
-        if not maid_id or not room_number:
-            return JsonResponse({"error": "maid_id and room_number are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not maid_id:
+            return JsonResponse({"error": "maid_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not room_id and not room_number:
+            return JsonResponse(
+                {"error": "You must provide either room_id OR (room_number + floor_id/floor_number)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
-            maid = Maid.objects.get(maid_id=maid_id)
-            room = Room.objects.get(room_number=room_number)
-        except (Maid.DoesNotExist, Room.DoesNotExist):
-            return JsonResponse({"error": "Invalid maid_id or room_number"}, status=status.HTTP_404_NOT_FOUND)
+            mid = int(maid_id)
+            if mid <= 0:
+                return JsonResponse({"error": "maid_id must be greater than 0."}, status=400)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "maid_id must be an integer."}, status=400)
+
+        try:
+            maid = Maid.objects.get(maid_id=mid)
+        except Maid.DoesNotExist:
+            return JsonResponse({"error": "Maid not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        room = None
+
+        if room_id:
+            try:
+                rid = int(room_id)
+                if rid <= 0:
+                    return JsonResponse({"error": "room_id must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "room_id must be an integer."}, status=400)
+
+            try:
+                room = Room.objects.select_related("floor").get(room_id=rid)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        else:
+            if not floor_id and not floor_number:
+                return JsonResponse(
+                    {"error": "When using room_number, you must also provide floor_id or floor_number."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                rnum = int(room_number)
+                if rnum <= 0:
+                    return JsonResponse({"error": "room_number must be greater than 0."}, status=400)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "room_number must be an integer."}, status=400)
+
+            floor = None
+            if floor_id:
+                try:
+                    fid = int(floor_id)
+                    if fid <= 0:
+                        return JsonResponse({"error": "floor_id must be greater than 0."}, status=400)
+                except (TypeError, ValueError):
+                    return JsonResponse({"error": "floor_id must be an integer."}, status=400)
+
+                try:
+                    floor = Floor.objects.get(floor_id=fid)
+                except Floor.DoesNotExist:
+                    return JsonResponse({"error": "Floor not found."}, status=404)
+            else:
+                try:
+                    fnum = int(floor_number)
+                    if fnum <= 0:
+                        return JsonResponse({"error": "floor_number must be greater than 0."}, status=400)
+                except (TypeError, ValueError):
+                    return JsonResponse({"error": "floor_number must be an integer."}, status=400)
+
+                try:
+                    floor = Floor.objects.get(floor_number=fnum)
+                except Floor.DoesNotExist:
+                    return JsonResponse({"error": f"Floor {fnum} not found."}, status=404)
+
+            try:
+                room = Room.objects.get(room_number=rnum, floor=floor)
+            except Room.DoesNotExist:
+                return JsonResponse({"error": "Room not found on the specified floor."}, status=404)
+
 
         try:
             task = Task.objects.get(maid=maid, room=room, status="in_progress")
         except Task.DoesNotExist:
             return JsonResponse({"error": "No task in progress for this maid and room"}, status=status.HTTP_404_NOT_FOUND)
 
-
         task.status = "completed"
         task.finish_time = timezone.now()
         task.save()
-
 
         if task.start_time:
             duration = task.finish_time - task.start_time
@@ -291,7 +498,7 @@ class CleanEndView(APIView):
         )
         
 
-#View Maid Stats Function (Maid)
+# View Maid Stats Function (Maid)
 class GetMaidStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -300,6 +507,11 @@ class GetMaidStatsView(APIView):
             maid = Maid.objects.get(user=request.user)
         except Maid.DoesNotExist:
             return JsonResponse({"error": "This user is not a Maid"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+        today = timezone.localdate()
+        update_maid_stats_for_day(maid, day=today)
+
 
         stats_qs = (
             MaidStat.objects
@@ -322,20 +534,29 @@ class GetMaidStatsView(APIView):
             )
         )
 
+        stats_list = [_format_daily_stat_row(dict(row)) for row in stats_qs]
+
+
+        overall_stats = get_overall_stats_for_maid(maid)
+        overall_stats = _format_overall_stats_row(dict(overall_stats))
+
         return JsonResponse(
             {
                 "maid_id": maid.maid_id,
-                "stats": list(stats_qs),
+                "maid_name": maid.name,
+                "stats": stats_list,
+                "overall": overall_stats,
             },
             status=status.HTTP_200_OK
         )
+
        
 # Deactivate Maid's Account By Admin Function (Admin)
 class AdminDeactivateMaidView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-       
+
         if not Admin.objects.filter(user=request.user).exists():
             return JsonResponse({"error": "Only admins can perform this action."}, status=403)
 
@@ -345,25 +566,26 @@ class AdminDeactivateMaidView(APIView):
             return JsonResponse({"error": "maid_id is required."}, status=400)
 
         try:
-            maid = Maid.objects.get(maid_id=maid_id)
+            maid = Maid.objects.select_related("user").get(maid_id=maid_id)
         except Maid.DoesNotExist:
             return JsonResponse({"error": "Maid not found."}, status=404)
 
-        user = maid.user
-        user.is_active = False
-        user.save()
+        maid.user.is_active = False
+        maid.user.save()
+
+        rebalance_pending_tasks_for_maid(maid)
 
         return JsonResponse(
-            {"message": f"Maid account (ID: {maid_id}) deactivated successfully."},
+            {"message": f"Maid account (ID: {maid_id}) deactivated successfully, and pending tasks reassigned."},
             status=status.HTTP_200_OK
         )
-        
+
 # Permanently Delete Maid's Account By Admin Function (Admin)
 class AdminDeleteMaidView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-      
+
         if not Admin.objects.filter(user=request.user).exists():
             return JsonResponse({"error": "Only admins can perform this action."}, status=403)
 
@@ -376,17 +598,21 @@ class AdminDeleteMaidView(APIView):
         except Maid.DoesNotExist:
             return JsonResponse({"error": "Maid not found."}, status=404)
 
+        rebalance_pending_tasks_for_maid(maid)
+
         target_user = maid.user
-    
+
         if hasattr(target_user, "auth_token"):
             target_user.auth_token.delete()
+
 
         target_user.delete()
 
         return JsonResponse(
-            {"message": f"Maid account (ID: {maid_id}) permanently deleted."},
+            {"message": f"Maid account (ID: {maid_id}) permanently deleted, and pending tasks reassigned."},
             status=status.HTTP_200_OK
         )
+
         
         
 #Create Floor Function (Admin)
@@ -460,7 +686,7 @@ class AdminDeleteFloorView(APIView):
 
         # Delete the floor (this will also delete its rooms because of on_delete=models.CASCADE)
         floor.delete()
-
+        rebalance_all_pending_tasks()
         return JsonResponse(
             {"message": f"Floor with ID {floor_id} deleted successfully."},
             status=status.HTTP_200_OK
@@ -781,7 +1007,7 @@ class AdminEditRoomView(APIView):
         # <<< END GRID UPDATE
 
         room.save()
-
+        rebalance_all_pending_tasks()
         return JsonResponse(
             {
                 "message": "Room updated successfully.",
@@ -898,7 +1124,7 @@ class AdminDeleteRoomView(APIView):
         deleted_room_number = room.room_number
         deleted_floor_number = room.floor.floor_number
         room.delete()
-
+        rebalance_all_pending_tasks()
         return JsonResponse(
             {
                 "message": "Room deleted successfully.",
@@ -1344,12 +1570,11 @@ def _parse_time(field_name, value):
 class AdminSetupMaidProfileView(APIView):
     """
     it accepts the these fields:
-      "maid_id"                           # required
-      "shift_days": Mon, Wed, Fri  # or Monday, Wednesday, Friday
+      "maid_id"                  # required
+      "shift_days": Mon, Wed, Fri   # or Monday, Wednesday, Friday
       "shift_start_time": 09:00
       "shift_end_time": 17:00
       "break_minutes": 30
-
     """
     permission_classes = [IsAuthenticated]
 
@@ -1396,8 +1621,9 @@ class AdminSetupMaidProfileView(APIView):
         if start_time and end_time and end_time <= start_time:
             return JsonResponse({"error": "shift_end_time must be after shift_start_time."}, status=400)
 
+
         if days is not None:
-            maid.shift_days = days
+            maid.shift_days = days   
         if start_time is not None:
             maid.shift_start_time = start_time
         if end_time is not None:
@@ -1406,6 +1632,8 @@ class AdminSetupMaidProfileView(APIView):
             maid.break_minutes = break_minutes
 
         maid.save()
+
+        rebalance_all_pending_tasks()
 
         return JsonResponse(
             {
@@ -1422,7 +1650,7 @@ class AdminSetupMaidProfileView(APIView):
             },
             status=status.HTTP_200_OK
         )
-        
+
 #View Maid Profile Function (Admin) - allows admin to view a maid's profile
 
 class AdminViewMaidProfileView(APIView):
@@ -1469,7 +1697,6 @@ class AdminViewMaidProfileView(APIView):
         )
         
 # View Maid Stats Function (Admin) - allows admin to view a maid's stats
-
 class AdminGetMaidStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1483,8 +1710,8 @@ class AdminGetMaidStatsView(APIView):
         if not maid_id:
             return JsonResponse({"error": "maid_id is required."}, status=400)
 
-        date_from = request.data.get("date_from")  # "YYYY-MM-DD"
-        date_to   = request.data.get("date_to")    # "YYYY-MM-DD"
+        date_from = request.data.get("date_from") 
+        date_to   = request.data.get("date_to")   
 
         try:
             maid = Maid.objects.get(maid_id=maid_id)
@@ -1505,7 +1732,7 @@ class AdminGetMaidStatsView(APIView):
                 return JsonResponse({"error": "date_to must be YYYY-MM-DD."}, status=400)
             qs = qs.filter(date__lte=dt)
 
-        stats = list(qs.values(
+        stats_raw = list(qs.values(
             "date",
             "total_rooms_cleaned",
             "avg_rooms_per_shift",
@@ -1520,13 +1747,22 @@ class AdminGetMaidStatsView(APIView):
             "break_usage",
         ))
 
+        stats_formatted = [_format_daily_stat_row(dict(row)) for row in stats_raw]
+
+        overall_stats = get_overall_stats_for_maid(maid)
+        overall_stats = _format_overall_stats_row(dict(overall_stats))
+
         return JsonResponse(
             {
-                "stats": stats
+                "maid_id": maid.maid_id,
+                "maid_name": maid.name,
+                "stats": stats_formatted,
+                "overall": overall_stats,
             },
             status=status.HTTP_200_OK
         )
-        
+
+
 # View Room Status Log (Admin) - allows admin to view the room status changes for a certain room
 
 class AdminViewRoomStatusLogsView(APIView):
@@ -1748,7 +1984,6 @@ class MaidSubmitCleaningReportView(APIView):
     it takes
       "task_id"
       "report"     
-      
 
     only maids can call this
     the task must belong to the logged-in maid
@@ -1769,7 +2004,6 @@ class MaidSubmitCleaningReportView(APIView):
         task_id = request.data.get("task_id")
         report = request.data.get("report")
 
-
         if not task_id:
             return JsonResponse({"error": "task_id is required."}, status=400)
         try:
@@ -1782,7 +2016,6 @@ class MaidSubmitCleaningReportView(APIView):
         if report is None:
             return JsonResponse({"error": "report is required."}, status=400)
         report = str(report)
-
 
         try:
             task = Task.objects.select_related("room", "maid").get(task_id=task_id)
@@ -1798,7 +2031,6 @@ class MaidSubmitCleaningReportView(APIView):
         if not (task.assigned_time and task.start_time and task.finish_time):
             return JsonResponse({"error": "Task timestamps (assigned/start/finish) are not fully recorded yet."}, status=400)
 
-
         room = task.room
         battery_changed = False
 
@@ -1806,7 +2038,6 @@ class MaidSubmitCleaningReportView(APIView):
             if room.battery_last_checked and task.start_time and task.finish_time:
                 if task.start_time <= room.battery_last_checked <= task.finish_time:
                     battery_changed = True
-
 
         log, created = CleaningLog.objects.get_or_create(
             task=task,
@@ -1822,11 +2053,15 @@ class MaidSubmitCleaningReportView(APIView):
         )
 
         if not created:
- 
             log.report = report
             log.battery_changed = battery_changed
-
             log.save()
+
+
+        if log.finish_time:
+            update_maid_stats_for_day(maid, day=log.finish_time.date())
+        else:
+            update_maid_stats_for_day(maid)
 
         return JsonResponse(
             {
@@ -1847,6 +2082,7 @@ class MaidSubmitCleaningReportView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
 
 
 
@@ -2039,13 +2275,11 @@ class ButtonRoomStatusUpdateView(APIView):
       "room_number" optional, only if not using room_id, must include floor_number with it
       "floor_number" optional, only if using room_number
 
-
     finds the room based on room_id OR (room_number + floor_number)
     validates status against Room.status choices
     updates Room.status
     creates a RoomStatusLog entry with changed_by="guest"
     """
-
 
     permission_classes = []
 
@@ -2054,7 +2288,6 @@ class ButtonRoomStatusUpdateView(APIView):
         room_number = request.data.get("room_number")
         floor_number = request.data.get("floor_number")
         new_status = request.data.get("status")
-
 
         if not new_status:
             return JsonResponse({"error": "status is required."}, status=400)
@@ -2077,7 +2310,6 @@ class ButtonRoomStatusUpdateView(APIView):
                 },
                 status=400,
             )
-
 
         room = None
 
@@ -2127,16 +2359,21 @@ class ButtonRoomStatusUpdateView(APIView):
             except Room.DoesNotExist:
                 return JsonResponse({"error": "Room not found on the specified floor."}, status=404)
 
-
         room.status = new_status
         room.save(update_fields=["status", "updated_at"])
-
 
         log = RoomStatusLog.objects.create(
             room=room,
             status=new_status,
             changed_by="guest",
         )
+
+        if new_status == "dirty":
+
+            assign_room_to_best_maid(room, assignment_type="auto")
+        elif new_status == "emergency_clean":
+
+            assign_room_to_best_maid(room, assignment_type="manual")
 
         return JsonResponse(
             {
@@ -2156,7 +2393,6 @@ class ButtonRoomStatusUpdateView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-
 
 
 
@@ -2272,4 +2508,118 @@ class AdminListMaidsView(APIView):
         return JsonResponse(
             {"maids": maids},
             status=status.HTTP_200_OK
+        )
+        
+        
+# View Maid Task Queue (Maid) - shows current task + ordered queue
+class MaidTaskQueueView(APIView):
+    """
+    Returns:
+      - current_task: the in-progress task for this maid (if any)
+      - queue: all PENDING tasks ordered by:
+          1) manual (assignment_type="manual") first, FCFS by assigned_time
+          2) auto   (assignment_type="auto")   next, FCFS by assigned_time
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Ensure the logged-in user is a Maid
+        maid = Maid.objects.filter(user=request.user).first()
+        if maid is None:
+            return JsonResponse(
+                {"error": "Only maids can view the maid task queue."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+
+        mark_stale_rooms_dirty(threshold_hours=48)
+
+        current_task = (
+            Task.objects.select_related("room__floor")
+            .filter(maid=maid, status="in_progress")
+            .order_by("start_time")
+            .first()
+        )
+
+        pending_qs = (
+            Task.objects.select_related("room__floor")
+            .filter(maid=maid, status="pending")
+            .order_by("assigned_time")
+        )
+
+
+        manual_pending = [t for t in pending_qs if t.assignment_type == "manual"]
+        auto_pending = [t for t in pending_qs if t.assignment_type == "auto"]
+
+        ordered_pending = manual_pending + auto_pending
+
+        def serialize_task(t):
+            return {
+                "task_id": t.task_id,
+                "room_id": t.room.room_id if t.room else None,
+                "room_number": t.room.room_number if t.room else None,
+                "floor_number": t.room.floor.floor_number if t.room and t.room.floor else None,
+                "assignment_type": t.assignment_type,
+                "status": t.status,
+                "assigned_time": t.assigned_time,
+                "start_time": t.start_time,
+                "finish_time": t.finish_time,
+                "battery_change_required": t.battery_change_required,
+            }
+
+        return JsonResponse(
+            {
+                "maid_id": maid.maid_id,
+                "maid_name": maid.name,
+                "current_task": serialize_task(current_task) if current_task else None,
+                "queue": [serialize_task(t) for t in ordered_pending],
+            },
+            status=status.HTTP_200_OK,
+        )
+
+# Maid Start Shift Function (Maid) - Records the start shift time for a maid after she logs in to her account
+class MaidShiftStartView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        maid = Maid.objects.filter(user=request.user).first()
+        if maid is None:
+            return JsonResponse(
+                {"error": "Only maids can start a maid shift."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        rebalance_all_pending_tasks()
+
+        return JsonResponse(
+            {
+                "message": "Shift start acknowledged. Pending tasks rebalanced.",
+                "maid_id": maid.maid_id,
+                "maid_name": maid.name,
+            },
+            status=status.HTTP_200_OK,
+        )
+# Maid End Shift Function (Maid) - Records the end shift time for a maid after she logs out of her account
+class MaidShiftEndView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        maid = Maid.objects.filter(user=request.user).first()
+        if maid is None:
+            return JsonResponse(
+                {"error": "Only maids can end a maid shift."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        rebalance_pending_tasks_for_maid(maid)
+
+        return JsonResponse(
+            {
+                "message": "Shift end acknowledged. Pending tasks reassigned.",
+                "maid_id": maid.maid_id,
+                "maid_name": maid.name,
+            },
+            status=status.HTTP_200_OK,
         )
