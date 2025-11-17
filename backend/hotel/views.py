@@ -386,7 +386,7 @@ class CleanEndView(APIView):
         room_number = request.data.get("room_number")
         floor_id = request.data.get("floor_id")
         floor_number = request.data.get("floor_number")
-        comment = request.data.get("comment")
+        comment = request.data.get("comment")  # will be used as the cleaning report
 
         if not maid_id:
             return JsonResponse({"error": "maid_id is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -397,6 +397,7 @@ class CleanEndView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # maid_id validation + fetch maid
         try:
             mid = int(maid_id)
             if mid <= 0:
@@ -409,6 +410,7 @@ class CleanEndView(APIView):
         except Maid.DoesNotExist:
             return JsonResponse({"error": "Maid not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        # ---- Resolve room (same logic as before) ----
         room = None
 
         if room_id:
@@ -469,16 +471,66 @@ class CleanEndView(APIView):
             except Room.DoesNotExist:
                 return JsonResponse({"error": "Room not found on the specified floor."}, status=404)
 
-
+        # ---- Get in-progress task for this maid & room ----
         try:
             task = Task.objects.get(maid=maid, room=room, status="in_progress")
         except Task.DoesNotExist:
             return JsonResponse({"error": "No task in progress for this maid and room"}, status=status.HTTP_404_NOT_FOUND)
 
+        # Mark task as completed (same as before)
         task.status = "completed"
         task.finish_time = timezone.now()
         task.save()
 
+        # ---------- MERGED: cleaning report + stats logic ----------
+        # comment is now the report
+        if comment is None:
+            return JsonResponse({"error": "comment (cleaning report) is required."}, status=400)
+        report = str(comment)
+
+        # Make sure timestamps exist (assigned/start/finish)
+        if not (task.assigned_time and task.start_time and task.finish_time):
+            return JsonResponse(
+                {"error": "Task timestamps (assigned/start/finish) are not fully recorded yet."},
+                status=400
+            )
+
+        room_obj = task.room
+        battery_changed = False
+
+        if task.battery_change_required:
+            if room_obj.battery_last_checked and task.start_time and task.finish_time:
+                if task.start_time <= room_obj.battery_last_checked <= task.finish_time:
+                    battery_changed = True
+
+        # Create or update CleaningLog for this task
+        log, created = CleaningLog.objects.get_or_create(
+            task=task,
+            maid=maid,
+            room=room_obj,
+            defaults={
+                "report": report,
+                "assigned_time": task.assigned_time,
+                "start_time": task.start_time,
+                "finish_time": task.finish_time,
+                "battery_changed": battery_changed,
+            },
+        )
+
+        if not created:
+            log.report = report
+            log.battery_changed = battery_changed
+            log.save()
+
+        # Update daily stats
+        if log.finish_time:
+            update_maid_stats_for_day(maid, day=log.finish_time.date())
+        else:
+            update_maid_stats_for_day(maid)
+
+        # ---------- END merged block ----------
+
+        # Duration message (keep your original behaviour)
         if task.start_time:
             duration = task.finish_time - task.start_time
             duration_minutes = round(duration.total_seconds() / 60, 2)
@@ -488,15 +540,26 @@ class CleanEndView(APIView):
 
         return JsonResponse(
             {
-                "message": "Cleaning completed",
+                "message": "Cleaning completed and report saved.",
                 "task_id": task.task_id,
                 "status": task.status,
                 "finish_time": task.finish_time,
                 "duration": time_message,
+                "log": {
+                    "log_id": log.log_id,
+                    "created": created,
+                    "room_number": room_obj.room_number,
+                    "maid_name": maid.name,
+                    "report": log.report,
+                    "assigned_time": log.assigned_time,
+                    "start_time": log.start_time,
+                    "finish_time": log.finish_time,
+                    "battery_changed": 1 if log.battery_changed else 0,
+                    "created_at": log.created_at,
+                }
             },
             status=status.HTTP_200_OK,
         )
-        
 
 # View Maid Stats Function (Maid)
 class GetMaidStatsView(APIView):
@@ -2530,14 +2593,14 @@ class AdminListMaidsView(APIView):
         )
         
         
-# View Maid Task Queue (Maid) - shows current task + ordered queue
+# View Maid Task Queue (Maid) - unified list (current + pending)
 class MaidTaskQueueView(APIView):
     """
     Returns:
-      - current_task: the in-progress task for this maid (if any)
-      - queue: all PENDING tasks ordered by:
-          1) manual (assignment_type="manual") first, FCFS by assigned_time
-          2) auto   (assignment_type="auto")   next, FCFS by assigned_time
+      - queue: ONE LIST containing:
+          1) current task first (if exists)
+          2) manual pending (FCFS)
+          3) auto pending (FCFS)
     """
     permission_classes = [IsAuthenticated]
 
@@ -2550,8 +2613,8 @@ class MaidTaskQueueView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-
         mark_stale_rooms_dirty(threshold_hours=48)
+
 
         current_task = (
             Task.objects.select_related("room__floor")
@@ -2566,11 +2629,16 @@ class MaidTaskQueueView(APIView):
             .order_by("assigned_time")
         )
 
-
         manual_pending = [t for t in pending_qs if t.assignment_type == "manual"]
         auto_pending = [t for t in pending_qs if t.assignment_type == "auto"]
 
-        ordered_pending = manual_pending + auto_pending
+
+        full_queue = []
+        if current_task:
+            full_queue.append(current_task)
+
+        full_queue.extend(manual_pending)
+        full_queue.extend(auto_pending)
 
         def serialize_task(t):
             return {
@@ -2588,10 +2656,7 @@ class MaidTaskQueueView(APIView):
 
         return JsonResponse(
             {
-                "maid_id": maid.maid_id,
-                "maid_name": maid.name,
-                "current_task": serialize_task(current_task) if current_task else None,
-                "queue": [serialize_task(t) for t in ordered_pending],
+                "queue": [serialize_task(t) for t in full_queue],
             },
             status=status.HTTP_200_OK,
         )
