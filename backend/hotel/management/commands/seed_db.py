@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from hotel.models import Admin, Maid, Floor, Room, Task, CleaningLog, RoomStatusLog, MaidStat
-from faker import Faker
+from faker import Faker # type: ignore
 import random
 from datetime import timedelta
 
@@ -70,10 +70,14 @@ class Command(BaseCommand):
                 email=f"maid{i+1}@hotel.com",
                 password="maid123"
             )
+
+            # Valid day codes for your validator
+            shift_code = random.choice(["Mon", "Tue", "Wed", "Thu", "Fri"])
+
             maid = Maid.objects.create(
                 user=maid_user,
                 name=fake.name(),
-                shift_day=random.choice(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]),
+                shift_days=[shift_code],      # FIXED: must be list + valid code
                 shift_start_time="09:00",
                 shift_end_time="17:00",
                 break_minutes=30

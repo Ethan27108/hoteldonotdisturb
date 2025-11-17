@@ -46,6 +46,7 @@ class Room(models.Model):
     room_id = models.AutoField(primary_key=True)
     room_number = models.IntegerField()
     floor = models.ForeignKey(Floor, on_delete=models.CASCADE)
+
     status = models.CharField(
         max_length=30,
         choices=[
@@ -55,9 +56,15 @@ class Room(models.Model):
             ("emergency_clean", "Emergency Clean"),
             ("dirty", "Dirty"),
         ],
+        default="clean"
     )
-    battery_indicator = models.IntegerField(default=100)  # percentage
+
+    battery_indicator = models.IntegerField(default=100)
     battery_last_checked = models.DateTimeField(null=True, blank=True)
+
+    pos_x = models.IntegerField(null=True, blank=True)
+    pos_y = models.IntegerField(null=True, blank=True)
+
     updated_at = models.DateTimeField(auto_now=True)
 
 
