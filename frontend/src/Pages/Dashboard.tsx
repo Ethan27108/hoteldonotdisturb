@@ -110,8 +110,9 @@ const Dashboard = () => {
 }
 
 
-  const startCleaning = async (maid_id: string | null, room_number: number) => {
+  const startCleaning = async (maid_id: string | null, room_id: number) => {
     if (!maidId || !token) return
+    console.log('Starting cleaning for maid_id:', maid_id, 'room_id:', room_id)
     try {
       await fetch('/api/cleanStart/', {
         method: 'POST',
@@ -119,7 +120,7 @@ const Dashboard = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ maid_id, room_number }),
+        body: JSON.stringify({ maid_id, room_id }),
       })
     } catch (error) {
       console.error('Error starting cleaning:', error)
@@ -128,7 +129,7 @@ const Dashboard = () => {
 
   const endCleaning = async (
     maid_id: string | null,
-    room_number: number,
+    room_id: number,
     commentText: string = ''
   ) => {
     if (!maidId || !token) return
@@ -139,7 +140,7 @@ const Dashboard = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ maid_id, room_number, comment: commentText }),
+        body: JSON.stringify({ maid_id, room_id, comment: commentText }),
       })
     } catch (error) {
       console.error('Error ending cleaning:', error)
@@ -219,10 +220,11 @@ const Dashboard = () => {
                   name="Start Room Clean"
                   secondname="Stop Room Clean"
                   roomNum={tasks[0].room_number}
+                  initialOn={tasks[0].status !== 'in_progress'}
                   onToggle={(on) => {
-                    if (on) startCleaning(maidId, tasks[0].room_number)
+                    if (on) startCleaning(maidId, tasks[0].room_id)
                     else {
-                      endCleaning(maidId, tasks[0].room_number, comment)
+                      endCleaning(maidId, tasks[0].room_id, comment)
                       setComment('')
                       setTasks((t) => t.filter((x) => x.task_id !== tasks[0].task_id))
                     }
