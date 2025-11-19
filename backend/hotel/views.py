@@ -2366,6 +2366,7 @@ class ButtonRoomStatusUpdateView(APIView):
     permission_classes = []
 
     def post(self, request):
+        print("hit this api")
         room_id = request.data.get("room_id")
         room_number = request.data.get("room_number")
         floor_number = request.data.get("floor_number")
