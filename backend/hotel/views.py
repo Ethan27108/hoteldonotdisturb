@@ -755,7 +755,7 @@ class AdminDeleteFloorView(APIView):
             status=status.HTTP_200_OK
         )
 
-#Edit Floor (Admin)
+#Edit Floor Function (Admin)
 
 class AdminEditFloorView(APIView):
     permission_classes = [IsAuthenticated]
@@ -893,26 +893,27 @@ class AdminAddRoomView(APIView):
         floor_number = request.data.get("floor_number")
 
 
-        raw_pos_x = request.data.get("pos_x")
-        raw_pos_y = request.data.get("pos_y")
+        raw_grid_x = request.data.get("grid_x")
+        raw_grid_y = request.data.get("grid_y")
+        room_type = request.data.get("room_type", "Standard")
         frontend_status = request.data.get("status", "Available")
 
         backend_status = self.FRONTEND_TO_BACKEND_STATUS.get(frontend_status, "clean")
 
 
-        pos_x = None
-        if raw_pos_x not in (None, ""):
+        grid_x = None
+        if raw_grid_x not in (None, ""):
             try:
-                pos_x = int(raw_pos_x)
+                grid_x = int(raw_grid_x)
             except (TypeError, ValueError):
-                return JsonResponse({"error": "pos_x must be an integer if provided."}, status=400)
+                return JsonResponse({"error": "grid_x must be an integer if provided."}, status=400)
 
-        pos_y = None
-        if raw_pos_y not in (None, ""):
+        grid_y = None
+        if raw_grid_y not in (None, ""):
             try:
-                pos_y = int(raw_pos_y)
+                grid_y = int(raw_grid_y)
             except (TypeError, ValueError):
-                return JsonResponse({"error": "pos_y must be an integer if provided."}, status=400)
+                return JsonResponse({"error": "grid_y must be an integer if provided."}, status=400)
 
 
         if room_number is None:
@@ -952,9 +953,10 @@ class AdminAddRoomView(APIView):
         room = Room.objects.create(
             room_number=room_number,
             floor=floor,
-            status=backend_status, 
-            pos_x=pos_x,            
-            pos_y=pos_y,
+            status=backend_status,
+            room_type=room_type,    
+            pos_x=grid_x,            
+            pos_y=grid_y,
         )
 
 
@@ -964,9 +966,10 @@ class AdminAddRoomView(APIView):
                 "room": {
                     "id": room.room_id,
                     "room_number": room.room_number,
+                    "room_type": room.room_type,
                     "status": self.BACKEND_TO_FRONTEND_STATUS[room.status],
-                    "pos_x": room.pos_x,                
-                    "pos_y": room.pos_y,
+                    "grid_x": room.pos_x,                
+                    "grid_y": room.pos_y,
                     "battery_level": room.battery_indicator,
                     "assigned_maid_id": room.assigned_maid_id,
                     "floor_id": floor.floor_id,
@@ -1007,8 +1010,8 @@ class AdminEditRoomView(APIView):
         new_status = request.data.get("status")
 
 
-        new_pos_x = request.data.get("pos_x")
-        new_pos_y = request.data.get("pos_y")
+        new_grid_x = request.data.get("grid_x")
+        new_grid_y = request.data.get("grid_y")
 
 
         target_floor = room.floor 
@@ -1072,17 +1075,17 @@ class AdminEditRoomView(APIView):
             room.status = new_status
 
 
-        if new_pos_x not in (None, ""):
+        if new_grid_x not in (None, ""):
             try:
-                room.pos_x = int(new_pos_x)
+                room.pos_x = int(new_grid_x)
             except (TypeError, ValueError):
-                return JsonResponse({"error": "pos_x must be an integer if provided."}, status=400)
+                return JsonResponse({"error": "grid_x must be an integer if provided."}, status=400)
 
-        if new_pos_y not in (None, ""):
+        if new_grid_y not in (None, ""):
             try:
-                room.pos_y = int(new_pos_y)
+                room.pos_y = int(new_grid_y)
             except (TypeError, ValueError):
-                return JsonResponse({"error": "pos_y must be an integer if provided."}, status=400)
+                return JsonResponse({"error": "grid_y must be an integer if provided."}, status=400)
 
 
         room.save()
@@ -1102,8 +1105,8 @@ class AdminEditRoomView(APIView):
                     "updated_at": room.updated_at,
 
                
-                    "pos_x": room.pos_x,
-                    "pos_y": room.pos_y,
+                    "grid_x": room.pos_x,
+                    "grid_y": room.pos_y,
                 },
             },
             status=status.HTTP_200_OK
@@ -1259,8 +1262,8 @@ class AdminViewRoomView(APIView):
                     "status": r.status,
 
                     # Safe fallback in case your model doesn't have these yet
-                    "pos_x": getattr(r, "pos_x", 0),
-                    "pos_y": getattr(r, "pos_y", 0),
+                    "grid_x": getattr(r, "grid_x", 0),
+                    "grid_y": getattr(r, "grid_y", 0),
                     "battery_level": getattr(r, "battery_indicator", 100),
 
                     "assigned_maid_id": None,
