@@ -386,7 +386,7 @@ class CleanEndView(APIView):
         room_number = request.data.get("room_number")
         floor_id = request.data.get("floor_id")
         floor_number = request.data.get("floor_number")
-        comment = request.data.get("comment")  # will be used as the cleaning report
+        comment = request.data.get("comment") 
 
         if not maid_id:
             return JsonResponse({"error": "maid_id is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -397,7 +397,7 @@ class CleanEndView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # maid_id validation + fetch maid
+
         try:
             mid = int(maid_id)
             if mid <= 0:
@@ -410,7 +410,7 @@ class CleanEndView(APIView):
         except Maid.DoesNotExist:
             return JsonResponse({"error": "Maid not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # ---- Resolve room (same logic as before) ----
+
         room = None
 
         if room_id:
@@ -471,24 +471,31 @@ class CleanEndView(APIView):
             except Room.DoesNotExist:
                 return JsonResponse({"error": "Room not found on the specified floor."}, status=404)
 
-        # ---- Get in-progress task for this maid & room ----
+
         try:
             task = Task.objects.get(maid=maid, room=room, status="in_progress")
         except Task.DoesNotExist:
             return JsonResponse({"error": "No task in progress for this maid and room"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Mark task as completed (same as before)
+
         task.status = "completed"
         task.finish_time = timezone.now()
         task.save()
 
-        # ---------- MERGED: cleaning report + stats logic ----------
-        # comment is now the report
+
+        room.status = "clean"
+        room.save(update_fields=["status", "updated_at"])
+
+        RoomStatusLog.objects.create(
+            room=room,
+            status="clean",
+            changed_by="maid",
+        )
+
         if comment is None:
             return JsonResponse({"error": "comment (cleaning report) is required."}, status=400)
         report = str(comment)
 
-        # Make sure timestamps exist (assigned/start/finish)
         if not (task.assigned_time and task.start_time and task.finish_time):
             return JsonResponse(
                 {"error": "Task timestamps (assigned/start/finish) are not fully recorded yet."},
@@ -503,7 +510,6 @@ class CleanEndView(APIView):
                 if task.start_time <= room_obj.battery_last_checked <= task.finish_time:
                     battery_changed = True
 
-        # Create or update CleaningLog for this task
         log, created = CleaningLog.objects.get_or_create(
             task=task,
             maid=maid,
@@ -522,15 +528,12 @@ class CleanEndView(APIView):
             log.battery_changed = battery_changed
             log.save()
 
-        # Update daily stats
         if log.finish_time:
             update_maid_stats_for_day(maid, day=log.finish_time.date())
         else:
             update_maid_stats_for_day(maid)
 
-        # ---------- END merged block ----------
 
-        # Duration message (keep your original behaviour)
         if task.start_time:
             duration = task.finish_time - task.start_time
             duration_minutes = round(duration.total_seconds() / 60, 2)
@@ -545,6 +548,12 @@ class CleanEndView(APIView):
                 "status": task.status,
                 "finish_time": task.finish_time,
                 "duration": time_message,
+                "room": {
+                    "room_id": room.room_id,
+                    "room_number": room.room_number,
+                    "floor_number": room.floor.floor_number,
+                    "status": room.status,
+                },
                 "log": {
                     "log_id": log.log_id,
                     "created": created,
@@ -558,8 +567,9 @@ class CleanEndView(APIView):
                     "created_at": log.created_at,
                 }
             },
-            status=status.HTTP_200_OK,
+            status=status.HTTP_200_OK
         )
+
 
 # View Maid Stats Function (Maid)
 class GetMaidStatsView(APIView):
@@ -2441,7 +2451,7 @@ class ButtonRoomStatusUpdateView(APIView):
         )
 
         if new_status == "dirty":
-
+            
             assign_room_to_best_maid(room, assignment_type="auto")
         elif new_status == "emergency_clean":
 
