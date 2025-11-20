@@ -121,12 +121,17 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
 
   useEffect(() => {
     fetchFloors();
-    localStorage.setItem("selectedFloor", JSON.stringify(currentFloor));
     const interval = setInterval(() => {
       fetchFloors();
     }, 10000); // 10 seconds
     return () => clearInterval(interval);
   }, [token]);
+
+  useEffect(() => {
+    if (currentFloor) {
+      localStorage.setItem("selectedFloor", JSON.stringify(currentFloor));
+    }
+  }, [currentFloor]);
 
   useEffect(() => {
     fetchRooms(currentFloor);
