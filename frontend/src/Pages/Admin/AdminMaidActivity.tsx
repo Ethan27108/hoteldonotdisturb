@@ -119,7 +119,37 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
                   <Eye size={16} />
                 </button>
 
-                <button className="btn red" title="Remove Maid">
+                <button 
+                  className="btn red" 
+                  title="Remove Maid"
+                  onClick={async () => {
+                    if (!window.confirm(`Are you sure you want to delete ${m.name}? This action cannot be undone.`)) {
+                      return;
+                    }
+
+                    try {
+                      const resp = await fetch('/api/admin/deleteMaid/', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ maid_id: m.maid_id }),
+                      });
+
+                      if (resp.ok) {
+                        alert('Maid deleted successfully');
+                        fetchMaids(); // Refresh the list
+                      } else {
+                        const error = await resp.json();
+                        alert(error.error || 'Failed to delete maid');
+                      }
+                    } catch (err) {
+                      console.error('Error deleting maid:', err);
+                      alert('Failed to delete maid');
+                    }
+                  }}
+                >
                   <Trash2 size={16} />
                 </button>
               </div>
