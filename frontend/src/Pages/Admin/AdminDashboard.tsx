@@ -439,10 +439,7 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
               // Default to 0,0 if not provided
               body.pos_x = data.pos_x !== undefined ? data.pos_x : 0;
               body.pos_y = data.pos_y !== undefined ? data.pos_y : 0;
-              body.grid_x = 0;
-              body.grid_y = 0;
               if (data.status) body.status = data.status;
-              if (data.room_type) body.room_type = data.room_type;
 
               const resp = await fetch("/api/admin/addRoom/", {
                 method: "POST",

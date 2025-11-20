@@ -12,7 +12,6 @@ interface CreateRoomFormProps {
     pos_x?: string | null;
     pos_y?: string | null;
     status?: string;
-    room_type?: string;
   }) => void;
 }
 
@@ -28,7 +27,6 @@ const CreateRoomForm = ({ onClose, floor_id = null, onSubmit }: CreateRoomFormPr
     const payload: any = {
       room_number: roomNumber,
       status,
-      room_type: roomType,
     };
 
     // prefer explicit floor_id if provided by parent
@@ -86,17 +84,6 @@ const CreateRoomForm = ({ onClose, floor_id = null, onSubmit }: CreateRoomFormPr
             <option>Do Not Disturb</option>
             <option>Emergency</option>
           </select>
-
-          {/* Room Type */}
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginTop: '12px' }}>Room Type</label>
-          <input
-            type="text"
-            required
-            value={roomType}
-            onChange={(e) => setRoomType(e.target.value)}
-            placeholder="Room Type (e.g. Standard, Deluxe, Suite)"
-            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', marginTop: '4px', fontSize: '15px' }}
-          />
 
           <div className="modal-actions">
             <button type="button" onClick={onClose} className="btn">
