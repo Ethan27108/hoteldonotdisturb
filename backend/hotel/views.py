@@ -1588,7 +1588,7 @@ class MaidViewProfileView(APIView):
                 "maid_profile": {
                     "name": maid.name,
                     "profile_info": maid.profile_info,
-                    "shift_day": maid.shift_day,
+                    "shift_days": maid.shift_days,
                     "shift_start_time": maid.shift_start_time,
                     "shift_end_time": maid.shift_end_time,
                     "break_minutes": maid.break_minutes,
