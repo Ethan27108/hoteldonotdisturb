@@ -66,9 +66,9 @@ def mark_stale_rooms_dirty(threshold_hours=48, now=None):
 def _get_shift_days(maid):
     """
     Safely returns shift days as a list of weekday names, e.g. ["Monday", "Wednesday"].
-    Works whether shift_day is a JSONField (list) or a JSON string.
+    Works whether shift_days is a JSONField (list) or a JSON string.
     """
-    days = maid.shift_day
+    days = maid.shift_days
     if not days:
         return []
 
