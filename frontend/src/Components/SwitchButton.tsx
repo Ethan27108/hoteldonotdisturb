@@ -1,31 +1,39 @@
-import React from 'react'
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react'
 
-
-
-
-interface SwitchButttonProps {
-  name: string;
-  secondname: string;
-  roomNum: number;
-  onToggle?: (on: boolean) => void; // Add this prop
+interface SwitchButtonProps {
+  name: string
+  secondname: string
+  roomNum: number
+  onToggle?: (on: boolean) => void
+  initialOn?: boolean   // <-- NEW PROP
 }
 
+const SwitchButton: React.FC<SwitchButtonProps> = ({
+  name,
+  secondname,
+  onToggle,
+  initialOn = true,   // default OFF unless defined
+}) => {
 
-const SwitchButton: React.FC<SwitchButttonProps> = ({name,secondname, onToggle}) => {
-    const [on, setOn] = useState(true);
+  const [on, setOn] = useState(initialOn)
 
-    const handleClick = async () => {
-    setOn(prevOn => {
-      const newOn = !prevOn;
-      if (onToggle) {
-        onToggle(prevOn); // Call the parent function with the new state
-      }
-      return newOn;
-    });
-  };
-  return(
-    <button onClick={handleClick}>{on ? name : secondname}</button>
+  // If the parent updates initialOn, update the toggle
+  useEffect(() => {
+    setOn(initialOn)
+  }, [initialOn])
+
+  const handleClick = () => {
+    setOn(prev => {
+      const newState = !prev
+      if (onToggle) onToggle(prev)   // <-- send *new* state
+      return newState
+    })
+  }
+
+  return (
+    <button onClick={handleClick}>
+      {on ? name : secondname}
+    </button>
   )
 }
 

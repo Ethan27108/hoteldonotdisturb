@@ -39,6 +39,7 @@ const Dashboard = () => {
   const [username, setUsername] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [maidId, setMaidId] = useState<string | null>(null)
+  const [overall, setOverall] = useState<any>(null)
   const navigate = useNavigate()
 
   const [comment, setComment] = useState<string>('')
@@ -81,7 +82,10 @@ const Dashboard = () => {
         body: JSON.stringify({ maidId }),
       })
       const data = await response.json()
-      if (response.ok) setStats(data.stats)
+      console.log('Backend stats response:', data)  // <-- Add this line
+      if (response.ok) {
+        setStats(data.stats)
+        setOverall(data.overall)}
     } catch (error) {
       console.error('Error fetching stats:', error)
     }
@@ -110,8 +114,9 @@ const Dashboard = () => {
 }
 
 
-  const startCleaning = async (maid_id: string | null, room_number: number) => {
+  const startCleaning = async (maid_id: string | null, room_id: number) => {
     if (!maidId || !token) return
+    console.log('Starting cleaning for maid_id:', maid_id, 'room_id:', room_id)
     try {
       await fetch('/api/cleanStart/', {
         method: 'POST',
@@ -119,7 +124,7 @@ const Dashboard = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ maid_id, room_number }),
+        body: JSON.stringify({ maid_id, room_id }),
       })
     } catch (error) {
       console.error('Error starting cleaning:', error)
@@ -128,7 +133,7 @@ const Dashboard = () => {
 
   const endCleaning = async (
     maid_id: string | null,
-    room_number: number,
+    room_id: number,
     commentText: string = ''
   ) => {
     if (!maidId || !token) return
@@ -139,7 +144,7 @@ const Dashboard = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ maid_id, room_number, comment: commentText }),
+        body: JSON.stringify({ maid_id, room_id, comment: commentText }),
       })
     } catch (error) {
       console.error('Error ending cleaning:', error)
@@ -219,10 +224,11 @@ const Dashboard = () => {
                   name="Start Room Clean"
                   secondname="Stop Room Clean"
                   roomNum={tasks[0].room_number}
+                  initialOn={tasks[0].status !== 'in_progress'}
                   onToggle={(on) => {
-                    if (on) startCleaning(maidId, tasks[0].room_number)
+                    if (on) startCleaning(maidId, tasks[0].room_id)
                     else {
-                      endCleaning(maidId, tasks[0].room_number, comment)
+                      endCleaning(maidId, tasks[0].room_id, comment)
                       setComment('')
                       setTasks((t) => t.filter((x) => x.task_id !== tasks[0].task_id))
                     }
@@ -254,23 +260,23 @@ const Dashboard = () => {
           <aside className="mobile-stats">
             <h3>Stats</h3>
             <div className="stats-list">
-              {stats.length === 0 && <div className="empty">No stats</div>}
-              {stats.map((stat) => (
-                <div className="stat-card" key={stat.stat_id}>
-                  <div className="stat-date">{stat.date}</div>
-                  <div>Total cleaned: {fmt(stat.total_rooms_cleaned)}</div>
-                  <div>Avg/shift: {fmt(stat.avg_rooms_per_shift)}</div>
-                  <div>Avg time/room: {fmt(stat.avg_time_per_room)} minutes</div>
-                  <div>Working hours: {fmt(stat.working_hours)}</div>
-                  <div>Active cleaning hours: {fmt(stat.active_cleaning_hours)}</div>
-                  <div>Completion rate: {fmt(stat.completion_rate)}%</div>
-                  <div>Tasks incomplete: {fmt(stat.tasks_incomplete)}</div>
-                  <div>Emergency handled: {fmt(stat.emergency_tasks_handled)}</div>
-                  <div>Battery changes: {fmt(stat.battery_changes_performed)}</div>
-                  <div>On-time attendance: {fmt(stat.on_time_shift_attendance)}%</div>
-                  <div>Break usage: {fmt(stat.break_usage)} minutes</div>
+              {!overall && <div className="empty">No stats</div>}
+
+              {overall && (
+                <div className="stat-card">
+                  <div>Total rooms cleaned: {fmt(overall.total_rooms_cleaned)}</div>
+                  <div>Avg rooms per shift: {fmt(overall.avg_rooms_per_shift_overall)}</div>
+                  <div>Avg time per room: {fmt(overall.avg_time_per_room_overall)} minutes</div>
+                  <div>Working hours: {fmt(overall.total_working_hours)}</div>
+                  <div>Active cleaning hours: {fmt(overall.total_active_cleaning_hours)}</div>
+                  <div>Completion rate: {fmt(overall.overall_completion_rate)}%</div>
+                  <div>Tasks incomplete: {fmt(overall.total_tasks_incomplete)}</div>
+                  <div>Emergency handled: {fmt(overall.total_emergency_tasks_handled)}</div>
+                  <div>Battery changes: {fmt(overall.total_battery_changes_performed)}</div>
+                  <div>On-time attendance: {fmt(overall.avg_on_time_shift_attendance)}%</div>
+                  <div>Break usage: {fmt(overall.avg_break_usage)} minutes</div>
                 </div>
-              ))}
+              )}
             </div>
           </aside>
         </section>
