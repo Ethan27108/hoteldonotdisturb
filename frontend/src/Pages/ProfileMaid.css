@@ -37,6 +37,13 @@
   padding:6px 10px;
 }
 
+/* Scoped rule to ensure profile/maid buttons stay blue when other CSS is loaded */
+.profile-container .btn {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
 .profile-form{ display:flex; flex-direction:column; gap:10px; }
 .form-row{ display:flex; flex-direction:column; gap:6px; }
 .form-row label{ font-size:0.9rem; color:#374151; }
