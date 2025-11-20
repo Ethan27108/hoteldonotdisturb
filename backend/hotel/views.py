@@ -1742,10 +1742,7 @@ class AdminViewMaidProfileView(APIView):
         except Maid.DoesNotExist:
             return JsonResponse({"error": "Maid not found."}, status=404)
         
-        if hasattr(maid, "shift_days"):
-            shift_days = maid.shift_days
-        else:
-            shift_days = [x.strip() for x in (maid.shift_day or "").split(",") if x.strip()]
+        shift_days = maid.shift_days if maid.shift_days else []
 
         user = maid.user
         return JsonResponse(
