@@ -152,3 +152,15 @@ html,body,#root{height:100%}
 @media (min-width:700px){
   .bottom-area{ gap:12px }
 }
+
+/* Stronger, scoped rules for maid pages to prevent overrides from global/admin CSS */
+.mobile-container .btn {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.current-actions .btn {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+}

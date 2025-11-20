@@ -35,6 +35,7 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
   const [scale, setScale] = useState<number>(1);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef<string | null>(null);
+  const isDraggingRef = useRef<boolean>(false);
   const roomsRef = useRef<Room[]>([]);
   const tokenRef = useRef<string | null>(token);
   const currentFloorRef = useRef<Floor | null>(currentFloor);
@@ -139,6 +140,7 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
   const onPointerMove = useCallback((e: PointerEvent) => {
     const id = draggingRef.current;
     if (!id || !gridRef.current) return;
+    isDraggingRef.current = true; // Mark that dragging occurred
     const rect = gridRef.current.getBoundingClientRect();
     const clientX = e.clientX;
     const clientY = e.clientY;
@@ -152,13 +154,19 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
 
   const onPointerUp = useCallback(() => {
     const draggedId = draggingRef.current;
+    const wasDragging = isDraggingRef.current;
     draggingRef.current = null;
     window.removeEventListener("pointermove", onPointerMove);
     window.removeEventListener("pointerup", onPointerUp);
+    
+    // Reset dragging flag after a short delay to allow click event to check it
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 50);
 
-    // Persist the final position of the dragged room
+    // Persist the final position of the dragged room (only if actually dragged)
     (async () => {
-      if (!draggedId) return;
+      if (!draggedId || !wasDragging) return;
       const latestRooms = roomsRef.current || [];
       const r = latestRooms.find((x) => x.id === draggedId);
       if (!r) return;
@@ -517,6 +525,41 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
                 Cancel
               </button>
               <button
+                className="btn red"
+                onClick={async () => {
+                  if (!window.confirm(`Are you sure you want to delete Room ${selectedRoom.room_number}? This action cannot be undone.`)) {
+                    return;
+                  }
+
+                  try {
+                    const resp = await fetch("/api/admin/deleteRoom/", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({
+                        room_id: selectedRoom.id,
+                      }),
+                    });
+
+                    if (resp.status === 200) {
+                      setShowEditRoom(false);
+                      alert('Room deleted successfully');
+                      fetchRooms(currentFloor);
+                    } else {
+                      const error = await resp.json();
+                      alert(error.error || "Failed to delete room");
+                    }
+                  } catch (err) {
+                    console.error("Error deleting room:", err);
+                    alert("Failed to delete room");
+                  }
+                }}
+              >
+                Delete Room
+              </button>
+              <button
                 className="btn primary"
                 onClick={async () => {
                   try {
@@ -592,6 +635,8 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
                   data-status={r.status}
                   onClick={(e) => {
                     e.stopPropagation();
+                    // Don't open modal if user was dragging
+                    if (isDraggingRef.current) return;
                     setSelectedRoom(r);
                     setEditStatus(r.status);
                     setShowEditRoom(true);
