@@ -26,7 +26,10 @@ interface Props {
 const AdminDashboard: React.FC<Props> = ({ token }) => {
   const [floors, setFloors] = useState<Floor[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [currentFloor, setCurrentFloor] = useState<Floor | null>(null);
+  const [currentFloor, setCurrentFloor] = useState<Floor | null>(() => {
+    const stored = localStorage.getItem("selectedFloor");
+    return stored ? JSON.parse(stored) : null;
+  });
 
   const [loading, setLoading] = useState(true);
   const [scale, setScale] = useState<number>(1);
@@ -67,7 +70,9 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
           name: `Floor ${f.floor_number}`,
         }));
         setFloors(mapped);
-        setCurrentFloor(mapped[0] ?? null);
+        if (!currentFloor && mapped.length > 0) {
+          setCurrentFloor(mapped[0]);
+        }
       }
     } catch (err) {
       console.error("Error loading floors:", err);
@@ -115,10 +120,19 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
 
   useEffect(() => {
     fetchFloors();
+    localStorage.setItem("selectedFloor", JSON.stringify(currentFloor));
+    const interval = setInterval(() => {
+      fetchFloors();
+    }, 10000); // 10 seconds
+    return () => clearInterval(interval);
   }, [token]);
 
   useEffect(() => {
     fetchRooms(currentFloor);
+    const interval = setInterval(() => {
+      fetchRooms(currentFloor);
+    }, 10000); // 10 seconds
+    return () => clearInterval(interval);
   }, [currentFloor, token]);
 
   // Drag handlers
