@@ -3,73 +3,106 @@ import { X } from "lucide-react";
 
 interface CreateRoomFormProps {
   onClose: () => void;
-  floor_id: string;
+  floor_id?: string | null;
   onSubmit: (roomData: {
     room_number: string;
-    room_type: string;
-    status: string;
-    floor_id: string;
+    // backend accepts either floor_id OR floor_number
+    floor_id?: string | null;
+    floor_number?: string | null;
+    pos_x?: string | null;
+    pos_y?: string | null;
+    status?: string;
+    room_type?: string;
   }) => void;
 }
 
-const CreateRoomForm = ({ onClose, floor_id, onSubmit }: CreateRoomFormProps) => {
-  const [formData, setFormData] = useState({
-    room_number: "",
-    room_type: "Standard",
-    status: "available",
-  });
+const CreateRoomForm = ({ onClose, floor_id = null, onSubmit }: CreateRoomFormProps) => {
+  const [roomNumber, setRoomNumber] = useState("");
+  const [floorNumber, setFloorNumber] = useState<string>("");
+  const [status, setStatus] = useState<string>("Available");
+  const [roomType, setRoomType] = useState<string>("Standard");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ ...formData, floor_id });
+
+    const payload: any = {
+      room_number: roomNumber,
+      status,
+      room_type: roomType,
+    };
+
+    // prefer explicit floor_id if provided by parent
+    if (floor_id) payload.floor_id = floor_id;
+    else if (floorNumber) payload.floor_number = floorNumber;
+
+    onSubmit(payload);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">Create New Room</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={24} />
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0 }}>Create New Room</h3>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} style={{ marginTop: 12 }}>
+          {/* Room Number */}
           <input
             type="text"
             required
-            value={formData.room_number}
-            onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
-            placeholder="101"
+            value={roomNumber}
+            onChange={(e) => setRoomNumber(e.target.value)}
+            placeholder="Room Number (e.g. 101)"
             className="w-full px-3 py-2 border rounded-lg"
+            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', marginTop: '8px', fontSize: '15px' }}
           />
 
+          {/* Floor selection: only show if no floor_id provided */}
+          {!floor_id && (
+            <input
+              type="number"
+              required
+              value={floorNumber}
+              onChange={(e) => setFloorNumber(e.target.value)}
+              placeholder="Floor Number (e.g. 1)"
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', marginTop: '8px', fontSize: '15px' }}
+            />
+          )}
+
+          {/* Status */}
+          <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginTop: '12px' }}>Status</label>
           <select
-            value={formData.room_type}
-            onChange={(e) => setFormData({ ...formData, room_type: e.target.value })}
-            className="w-full px-3 py-2 border rounded-lg"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', marginTop: '4px', fontSize: '15px' }}
           >
-            <option>Standard</option>
-            <option>Deluxe</option>
-            <option>Suite</option>
+            <option>Available</option>
+            <option>Cleaning</option>
+            <option>Dirty</option>
+            <option>Do Not Disturb</option>
+            <option>Emergency</option>
           </select>
 
-          <select
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-            className="w-full px-3 py-2 border rounded-lg"
-          >
-            <option value="available">Available</option>
-            <option value="occupied">Occupied</option>
-            <option value="maintenance">Maintenance</option>
-          </select>
+          {/* Room Type */}
+          <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginTop: '12px' }}>Room Type</label>
+          <input
+            type="text"
+            required
+            value={roomType}
+            onChange={(e) => setRoomType(e.target.value)}
+            placeholder="Room Type (e.g. Standard, Deluxe, Suite)"
+            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', marginTop: '4px', fontSize: '15px' }}
+          />
 
-          <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 border p-2 rounded-lg">
+          <div className="modal-actions">
+            <button type="button" onClick={onClose} className="btn">
               Cancel
             </button>
-            <button type="submit" className="flex-1 bg-blue-600 text-white p-2 rounded-lg">
+            <button type="submit" className="btn primary">
               Create Room
             </button>
           </div>

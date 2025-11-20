@@ -1,0 +1,326 @@
+/* -------------------------------------------------
+   GLOBAL VARIABLES
+--------------------------------------------------*/
+:root {
+  --bg: #f8fafc;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --surface: #ffffff;
+  --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  --divider: #e2e8f0;
+}
+
+/* -------------------------------------------------
+   MAIN DASHBOARD WRAPPER
+--------------------------------------------------*/
+.admin-dash {
+  min-height: 100%;
+  padding: 0 24px 40px 24px;
+  background: var(--bg);
+  font-family: "Inter", sans-serif;
+}
+
+/* -------------------------------------------------
+   PAGE HEADER
+--------------------------------------------------*/
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.admin-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+/* -------------------------------------------------
+   FLOOR SELECTOR
+--------------------------------------------------*/
+.floor-select {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.floor-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+/* Floor button style */
+.floor-item {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--divider);
+  background: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.floor-item:hover {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--accent);
+}
+
+.floor-item.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+/* -------------------------------------------------
+   BUTTON STYLES
+--------------------------------------------------*/
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--divider);
+  background: var(--surface);
+  transition: 0.15s ease;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.btn.green {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.btn.red {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+/* -------------------------------------------------
+   EMPTY STATE
+--------------------------------------------------*/
+.muted {
+  color: var(--muted);
+  padding-top: 10px;
+  font-size: 16px;
+}
+
+/* -------------------------------------------------
+   MODAL BACKGROUND
+--------------------------------------------------*/
+.modal-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal {
+  background: #fff;
+  padding: 22px;
+  border-radius: 12px;
+  width: 350px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+}
+
+.modal input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  gap: 10px;
+}
+
+.error {
+  color: crimson;
+  margin-top: 6px;
+}
+
+/* -------------------------------------------------
+   ROOM LIST (CARD VIEW)
+--------------------------------------------------*/
+.room-list {
+  margin-top: 20px;
+  /* legacy grid fallback kept for list view */
+  display: none; /* hide default list when using room-grid */
+}
+
+.room-card {
+  background: #ffffff;
+  padding: 18px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--divider);
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.room-card h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.room-card p {
+  margin: 4px 0;
+  color: #475569;
+  font-size: 14px;
+}
+
+.room-grid {
+  position: relative;
+  width: 100%;
+  height: 640px; /* adjust as needed */
+  margin-top: 18px;
+  background-image: linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: calc(40px * var(--scale, 1)) calc(40px * var(--scale, 1)); /* grid cell size */
+  border: 1px dashed var(--divider);
+  border-radius: 12px;
+  overflow: auto;
+}
+
+.room-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  z-index: 20;
+}
+
+.room-node .room-card {
+  min-width: 150px;
+  max-width: 220px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(2,6,23,0.08);
+  background: #fff;
+  border: 1px solid var(--divider);
+  transform-origin: center center;
+  transform: scale(var(--scale, 1));
+}
+
+/* Color coding by status */
+.room-card[data-status="clean"] {
+  border-left: 5px solid #10b981;
+  background: linear-gradient(to right, rgba(16, 185, 129, 0.08), #fff);
+}
+
+.room-card[data-status="dirty"] {
+  border-left: 5px solid #f97316;
+  background: linear-gradient(to right, rgba(249, 115, 22, 0.08), #fff);
+}
+
+.room-card[data-status="cleaning_in_progress"] {
+  border-left: 5px solid #3b82f6;
+  background: linear-gradient(to right, rgba(59, 130, 246, 0.08), #fff);
+}
+
+.room-card[data-status="do_not_disturb"] {
+  border-left: 5px solid #ef4444;
+  background: linear-gradient(to right, rgba(239, 68, 68, 0.08), #fff);
+}
+
+.room-card[data-status="emergency_clean"] {
+  border-left: 5px solid #dc2626;
+  background: linear-gradient(to right, rgba(220, 38, 38, 0.12), #fff);
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.2);
+}
+
+@media (max-width: 900px) {
+  .room-grid { height: auto; background-size: calc(20px * var(--scale,1)) calc(20px * var(--scale,1)); }
+  .room-list { display: grid; grid-template-columns: 1fr; gap: 18px; }
+}
+
+/* grid controls */
+.grid-controls { display:flex; align-items:center; gap:12px; }
+/* compact icon button used for zoom controls */
+.zoom-btn {
+  padding: 8px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--divider);
+  background: var(--surface);
+  color: #000000; /* ensure lucide icons (stroke=currentColor) are visible */
+}
+.zoom-btn:hover { background: rgba(37,99,235,0.06); }
+
+/* ensure any inline SVG icons inside zoom buttons use currentColor for stroke */
+.zoom-btn svg { stroke: currentColor; }
+/* -------------------------------------------------
+   LOADER
+--------------------------------------------------*/
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.loader {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: 5px solid #e2e8f0;
+  border-top-color: var(--accent);
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* -------------------------------------------------
+   MOBILE RESPONSIVE
+--------------------------------------------------*/
+@media (max-width: 900px) {
+  .admin-dash {
+    padding: 10px;
+  }
+
+  .floor-select {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .room-list {
+    grid-template-columns: 1fr;
+  }
+}

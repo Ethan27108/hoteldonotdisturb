@@ -706,8 +706,12 @@ class AdminAddFloorView(APIView):
                 status=409
             )
 
+        # Accept optional name from request, or generate default
+        name = request.data.get("name", f"Floor {floor_number}")
+
         floor = Floor.objects.create(
             floor_number=floor_number,
+            name=name,
             created_by=admin,
         )
 
@@ -891,10 +895,12 @@ class AdminAddRoomView(APIView):
         room_number = request.data.get("room_number")
         floor_id = request.data.get("floor_id")
         floor_number = request.data.get("floor_number")
-
+        room_type = request.data.get("room_type", "")
 
         raw_pos_x = request.data.get("pos_x")
         raw_pos_y = request.data.get("pos_y")
+        raw_grid_x = request.data.get("grid_x")
+        raw_grid_y = request.data.get("grid_y")
         frontend_status = request.data.get("status", "Available")
 
         backend_status = self.FRONTEND_TO_BACKEND_STATUS.get(frontend_status, "clean")
@@ -913,6 +919,20 @@ class AdminAddRoomView(APIView):
                 pos_y = int(raw_pos_y)
             except (TypeError, ValueError):
                 return JsonResponse({"error": "pos_y must be an integer if provided."}, status=400)
+
+        grid_x = 0
+        if raw_grid_x not in (None, ""):
+            try:
+                grid_x = int(raw_grid_x)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "grid_x must be an integer if provided."}, status=400)
+
+        grid_y = 0
+        if raw_grid_y not in (None, ""):
+            try:
+                grid_y = int(raw_grid_y)
+            except (TypeError, ValueError):
+                return JsonResponse({"error": "grid_y must be an integer if provided."}, status=400)
 
 
         if room_number is None:
@@ -968,7 +988,6 @@ class AdminAddRoomView(APIView):
                     "pos_x": room.pos_x,                
                     "pos_y": room.pos_y,
                     "battery_level": room.battery_indicator,
-                    "assigned_maid_id": room.assigned_maid_id,
                     "floor_id": floor.floor_id,
                     "floor_number": floor.floor_number,
                     "updated_at": room.updated_at,

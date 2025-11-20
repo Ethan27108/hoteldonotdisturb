@@ -37,6 +37,7 @@ class Maid(models.Model):
 class Floor(models.Model):
     floor_id = models.AutoField(primary_key=True)
     floor_number = models.IntegerField()
+    name = models.CharField(max_length=255, default="")
     created_by = models.ForeignKey(Admin, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

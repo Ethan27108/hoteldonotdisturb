@@ -1,14 +1,17 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 
-interface CreateMaidFormProps {
+interface EditMaidScheduleFormProps {
   onClose: () => void;
+  maidId: string;
+  maidName: string;
+  initialData: {
+    shift_days?: string[];
+    shift_start_time?: string;
+    shift_end_time?: string;
+    break_minutes?: number;
+  };
   onSubmit: (data: {
-    username: string;
-    password: string;
-    email: string;
-    name: string;
-    profile_info?: string;
     shift_days?: string[];
     shift_start_time?: string;
     shift_end_time?: string;
@@ -16,17 +19,12 @@ interface CreateMaidFormProps {
   }) => void;
 }
 
-const CreateMaidForm = ({ onClose, onSubmit }: CreateMaidFormProps) => {
+const EditMaidScheduleForm = ({ onClose, maidId, maidName, initialData, onSubmit }: EditMaidScheduleFormProps) => {
   const [formData, setFormData] = useState({
-    username: "",
-    password: "",
-    email: "",
-    name: "",
-    profile_info: "",
-    shift_days: [] as string[],
-    shift_start_time: "",
-    shift_end_time: "",
-    break_minutes: 0,
+    shift_days: initialData.shift_days || [],
+    shift_start_time: initialData.shift_start_time || "",
+    shift_end_time: initialData.shift_end_time || "",
+    break_minutes: initialData.break_minutes || 0,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,9 +46,9 @@ const CreateMaidForm = ({ onClose, onSubmit }: CreateMaidFormProps) => {
 
   return (
     <div className="modal-bg" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h2 style={{ fontSize: 24, fontWeight: 700 }}>Add New Maid</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 700 }}>Edit Schedule — {maidName}</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
             <X size={24} />
           </button>
@@ -58,65 +56,7 @@ const CreateMaidForm = ({ onClose, onSubmit }: CreateMaidFormProps) => {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Username *</label>
-            <input
-              type="text"
-              required
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6 }}
-              placeholder="username"
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Password *</label>
-            <input
-              type="password"
-              required
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6 }}
-              placeholder="Password"
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Email *</label>
-            <input
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6 }}
-              placeholder="maid@hotel.com"
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Full Name *</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6 }}
-              placeholder="John Doe"
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Profile Info</label>
-            <textarea
-              value={formData.profile_info}
-              onChange={(e) => setFormData({ ...formData, profile_info: e.target.value })}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, minHeight: 60 }}
-              placeholder="Additional information..."
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Shift Days</label>
+            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Shift Days</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {days.map((day) => (
                 <button
@@ -178,7 +118,7 @@ const CreateMaidForm = ({ onClose, onSubmit }: CreateMaidFormProps) => {
               Cancel
             </button>
             <button type="submit" className="btn primary">
-              Add Maid
+              Save Changes
             </button>
           </div>
         </form>
@@ -187,4 +127,4 @@ const CreateMaidForm = ({ onClose, onSubmit }: CreateMaidFormProps) => {
   );
 };
 
-export default CreateMaidForm;
+export default EditMaidScheduleForm;

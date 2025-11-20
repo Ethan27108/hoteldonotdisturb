@@ -1,0 +1,132 @@
+/* Maid activity styles */
+.maid-activity {
+  padding: 12px 8px;
+}
+
+.maid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.maid-list {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.maid-card {
+  min-width: 220px;
+  max-width: 260px;
+  background: #fff;
+  border: 1px solid rgba(14,20,30,0.04);
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.maid-info { width: 100%; }
+.maid-name { font-weight: 700; font-size: 16px; color: #0f172a; }
+.maid-status { font-size: 13px; color: #475569; }
+.maid-status.status-active { color: #059669; font-weight: 700; }
+.maid-status.status-inactive { color: #ef4444; font-weight: 700; }
+
+.maid-actions { display:flex; gap:8px; margin-top:6px; width:100%; justify-content:flex-end }
+.maid-actions .btn { padding: 8px 10px; }
+.maid-actions .btn.secondary { background: transparent; border: 1px solid rgba(2,6,23,0.06); }
+.maid-actions .btn.secondary svg { stroke: currentColor; color: #000; }
+
+/* modal uses existing .modal and .modal-bg but we'll add a content area */
+.maid-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.maid-stats .stat-row { display:flex; justify-content:space-between; padding:6px 0; border-bottom: 1px dashed rgba(2,6,23,0.04); }
+
+/* Professional stats layout */
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.04);
+  border: 1px solid rgba(2,6,23,0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-label { font-size: 12px; color: #64748b; }
+.stat-value { font-size: 20px; font-weight: 800; color: #0f172a; }
+
+.progress {
+  height: 10px;
+  background: rgba(2,6,23,0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #06b6d4);
+  width: 0%;
+  transition: width 300ms ease;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+.stats-table td { padding: 8px 6px; border-bottom: 1px solid rgba(2,6,23,0.03); }
+.stats-table td.key { color: #64748b; font-size: 13px; width: 60%; }
+.stats-table td.value { text-align: right; font-weight: 700; }
+
+/* Ensure modal action buttons (Close) have visible dark text */
+.modal-actions .btn {
+  color: #000000;
+  background: #ffffff;
+  border: 1px solid rgba(2,6,23,0.06);
+}
+
+@media (max-width: 900px) {
+  .maid-list { flex-wrap: nowrap; }
+  .maid-card { min-width: 200px; }
+}
+.maid-activity{ padding:10px }
+
+.maid-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px }
+
+.maid-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px }
+
+.maid-card{ background:linear-gradient(180deg,#fff,#fbfdff); border:1px solid #e6edf3; border-radius:10px; padding:12px; display:flex; justify-content:space-between; align-items:center; gap:12px; box-shadow:0 6px 18px rgba(2,6,23,0.04); transition:transform .12s ease, box-shadow .12s ease }
+.maid-card.clickable{ cursor:pointer }
+.maid-card:hover{ transform:translateY(-6px); box-shadow:0 14px 36px rgba(2,6,23,0.08) }
+
+.maid-info{ display:flex; flex-direction:column }
+.maid-name{ font-weight:700; font-size:16px }
+.maid-status{ margin-top:6px; font-size:13px; padding:6px 8px; border-radius:999px; display:inline-block }
+.maid-status.status-active{ background:#ecfdf5; color:#065f46; border:1px solid #86efac }
+.maid-status.status-inactive{ background:#fff7ed; color:#92400e; border:1px solid #fdba74 }
+
+.maid-actions{ display:flex; gap:8px }
+
+.empty{ color:#64748b; padding:8px }
+
+@media (max-width:600px){
+  .maid-list{ grid-template-columns:repeat(auto-fill, minmax(160px,1fr)) }
+}

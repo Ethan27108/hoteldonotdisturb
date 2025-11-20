@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import Sidebar from '../../Components/Admin/Sidebar'
+import './Admin.css'
 import AdminDashboard from './AdminDashboard'
 import AdminMaidActivity from './AdminMaidActivity'
 
