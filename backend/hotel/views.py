@@ -2720,13 +2720,43 @@ class AlgoForce(APIView):
         except Admin.DoesNotExist:
             return JsonResponse({"error": "Only admins can perform this action."}, status=403)
 
-        # Run housekeeping and rebalancing
+        # Run housekeeping: mark stale rooms dirty first
         try:
-            # Mark stale rooms dirty (uses configured threshold)
             mark_stale_rooms_dirty()
-            # Rebalance all pending auto tasks
-            rebalance_all_pending_tasks()
         except Exception as e:
-            return JsonResponse({"error": "Failed to run algorithm", "details": str(e)}, status=500)
+            return JsonResponse({"error": "Failed during mark_stale_rooms_dirty", "details": str(e)}, status=500)
 
-        return JsonResponse({"message": "Algorithm executed successfully."}, status=200)
+        # Iterate all rooms and attempt to assign each (assign_room_to_best_maid
+        # will avoid creating duplicate tasks if a pending/in_progress exists)
+        rooms = Room.objects.all()
+        total = 0
+        assigned = 0
+        skipped = 0
+        errors = 0
+
+        now = timezone.localtime()
+
+        for room in rooms:
+            total += 1
+            try:
+                task = assign_room_to_best_maid(room, assignment_type="auto", now=now)
+                if task is None:
+                    skipped += 1
+                else:
+                    assigned += 1
+            except Exception:
+                errors += 1
+
+        # Try a global rebalance as a final pass (non-fatal)
+        try:
+            rebalance_all_pending_tasks()
+        except Exception:
+            pass
+
+        return JsonResponse({
+            "message": "Algorithm executed over all rooms.",
+            "total_rooms": total,
+            "assigned_tasks": assigned,
+            "skipped": skipped,
+            "errors": errors,
+        }, status=200)

@@ -128,7 +128,7 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
                     }
 
                     try {
-                      const resp = await fetch('/api/admin/deleteMaid/', {
+                      const resp = await fetch('/api/admin/deactivateMaid/', {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
