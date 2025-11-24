@@ -2707,3 +2707,26 @@ class MaidShiftEndView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+# Admin endpoint to force the assignment algorithm to run now
+class AlgoForce(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Only admins may run this
+        try:
+            Admin.objects.get(user=request.user)
+        except Admin.DoesNotExist:
+            return JsonResponse({"error": "Only admins can perform this action."}, status=403)
+
+        # Run housekeeping and rebalancing
+        try:
+            # Mark stale rooms dirty (uses configured threshold)
+            mark_stale_rooms_dirty()
+            # Rebalance all pending auto tasks
+            rebalance_all_pending_tasks()
+        except Exception as e:
+            return JsonResponse({"error": "Failed to run algorithm", "details": str(e)}, status=500)
+
+        return JsonResponse({"message": "Algorithm executed successfully."}, status=200)

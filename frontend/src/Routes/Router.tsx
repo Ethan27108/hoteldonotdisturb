@@ -4,6 +4,7 @@ import Login from '../Pages/Login';
 import Dashboard from '../Pages/Dashboard';
 import ProfileMaid from 'Pages/ProfileMaid';
 import Admin from 'Pages/Admin/Admin';
+import AlgoForce from 'Pages/algoForce';
 
 const AppRouter: React.FC = () => {
   return (
@@ -14,6 +15,7 @@ const AppRouter: React.FC = () => {
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/ProfileMaid" element={<ProfileMaid />}/>
         <Route path="/admin" element={<Admin />} />
+        <Route path="/algoForce" element={<AlgoForce />} />
       </Routes>
     </BrowserRouter>
   );

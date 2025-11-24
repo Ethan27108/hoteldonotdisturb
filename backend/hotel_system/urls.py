@@ -39,6 +39,7 @@ from hotel.views import DeviceGetRoomStatus
 from hotel.views import MaidTaskQueueView
 from hotel.views import MaidShiftStartView
 from hotel.views import MaidShiftEndView
+from hotel.views import AlgoForce
 
 
 urlpatterns = [
@@ -84,6 +85,7 @@ urlpatterns = [
     path("api/maid/tasks/", MaidTaskQueueView.as_view(), name="maid-task-queue"),
     path("api/maid/shiftStart/", MaidShiftStartView.as_view(), name="maid-shift-start"),
     path("api/maid/shiftEnd/", MaidShiftEndView.as_view(), name="maid-shift-end"),
+    path("api/algoForced/", AlgoForce.as_view(), name="force-algo"),
 
 
 ]
