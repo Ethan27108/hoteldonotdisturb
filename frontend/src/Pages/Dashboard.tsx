@@ -3,6 +3,75 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Dashboard.css'
 
+const translations = {
+  en: {
+    profile: 'Profile',
+    logout: 'Logout',
+    room: 'Room',
+    batteryChangeRequired: 'Battery change required:',
+    yes: 'Yes',
+    no: 'No',
+    addComment: 'Add comment about this room...',
+    startRoomClean: 'Start Room Clean',
+    stopRoomClean: 'Stop Room Clean',
+    noCurrentRoom: 'No current room assigned',
+    nextRooms: 'Next Rooms',
+    noUpcomingRooms: 'No upcoming rooms',
+    batteryChange: 'Battery change:',
+    stats: 'Stats',
+    noStats: 'No stats',
+    totalRoomsCleaned: 'Total rooms cleaned:',
+    avgRoomsPerShift: 'Avg rooms per shift:',
+    avgTimePerRoom: 'Avg time per room:',
+    workingHours: 'Working hours:',
+    activeCleaningHours: 'Active cleaning hours:',
+    completionRate: 'Completion rate:',
+    tasksIncomplete: 'Tasks incomplete:',
+    emergencyHandled: 'Emergency handled:',
+    batteryChanges: 'Battery changes:',
+    onTimeAttendance: 'On-time attendance:',
+    breakUsage: 'Break usage:',
+    minutes: 'minutes',
+    percent: '%',
+    language: 'Language',
+    english: 'English',
+    french: 'French',
+  },
+  fr: {
+    profile: 'Profil',
+    logout: 'Déconnexion',
+    room: 'Chambre',
+    batteryChangeRequired: 'Changement de batterie requis:',
+    yes: 'Oui',
+    no: 'Non',
+    addComment: 'Ajouter un commentaire sur cette chambre...',
+    startRoomClean: 'Commencer le nettoyage de la chambre',
+    stopRoomClean: 'Arrêter le nettoyage de la chambre',
+    noCurrentRoom: 'Aucune chambre actuelle assignée',
+    nextRooms: 'Chambres suivantes',
+    noUpcomingRooms: 'Aucune chambre à venir',
+    batteryChange: 'Changement de batterie:',
+    stats: 'Statistiques',
+    noStats: 'Aucune statistique',
+    totalRoomsCleaned: 'Total des chambres nettoyées:',
+    avgRoomsPerShift: 'Moyenne des chambres par quart:',
+    avgTimePerRoom: 'Temps moyen par chambre:',
+    workingHours: 'Heures de travail:',
+    activeCleaningHours: 'Heures de nettoyage actives:',
+    completionRate: 'Taux d\'achèvement:',
+    tasksIncomplete: 'Tâches incomplètes:',
+    emergencyHandled: 'Urgences traitées:',
+    batteryChanges: 'Changements de batterie:',
+    onTimeAttendance: 'Présence à l\'heure:',
+    breakUsage: 'Utilisation des pauses:',
+    minutes: 'minutes',
+    percent: '%',
+    language: 'Langue',
+    english: 'Anglais',
+    french: 'Français',
+  },
+}
+
 interface Task {
   task_id: number
   room_id: number
@@ -41,6 +110,18 @@ const Dashboard = () => {
   const [maidId, setMaidId] = useState<string | null>(null)
   const [overall, setOverall] = useState<any>(null)
   const navigate = useNavigate()
+  const [language, setLanguage] = useState<'en' | 'fr'>('en')
+
+  // Load language from localStorage
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'fr' | null
+    if (savedLanguage) setLanguage(savedLanguage)
+  }, [])
+
+  // Save language to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('language', language)
+  }, [language])
 
   const [comment, setComment] = useState<string>('')
   const handleCommentChange = (value: string) => setComment(value)
@@ -188,11 +269,18 @@ const Dashboard = () => {
     <div className="mobile-container">
       <header className="mobile-topbar">
         <div className="top-right">
+          <div className="language-selector">
+            <label>{translations[language].language}:</label>
+            <select value={language} onChange={(e) => setLanguage(e.target.value as 'en' | 'fr')}>
+              <option value="en">{translations[language].english}</option>
+              <option value="fr">{translations[language].french}</option>
+            </select>
+          </div>
           <button className="btn small" onClick={() => navigate('/ProfileMaid')}>
-            Profile
+            {translations[language].profile}
           </button>
           <button className="btn small ghost" onClick={handleLogout}>
-            Logout
+            {translations[language].logout}
           </button>
         </div>
       </header>
@@ -202,10 +290,10 @@ const Dashboard = () => {
           {tasks.length > 0 ? (
             <>
               <div className="room-header">
-                <h2>Room {tasks[0].room_number}</h2>
+                <h2>{translations[language].room} {tasks[0].room_number}</h2>
                 <div className="battery">
-                  Battery change required:{' '}
-                  {tasks[0].battery_change_required ? 'Yes' : 'No'}
+                  {translations[language].batteryChangeRequired}{' '}
+                  {tasks[0].battery_change_required ? translations[language].yes : translations[language].no}
                 </div>
               </div>
 
@@ -215,14 +303,14 @@ const Dashboard = () => {
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                   handleCommentChange(e.currentTarget.value)
                 }
-                placeholder="Add comment about this room..."
+                placeholder={translations[language].addComment}
                 rows={4}
               />
 
               <div className="current-actions">
                 <SwitchButton
-                  name="Start Room Clean"
-                  secondname="Stop Room Clean"
+                  name={translations[language].startRoomClean}
+                  secondname={translations[language].stopRoomClean}
                   roomNum={tasks[0].room_number}
                   initialOn={tasks[0].status !== 'in_progress'}
                   onToggle={(on) => {
@@ -237,20 +325,20 @@ const Dashboard = () => {
               </div>
             </>
           ) : (
-            <div className="no-room">No current room assigned</div>
+            <div className="no-room">{translations[language].noCurrentRoom}</div>
           )}
         </section>
 
         <section className="bottom-area">
           <aside className="next-rooms">
-            <h3>Next Rooms</h3>
+            <h3>{translations[language].nextRooms}</h3>
             <div className="next-list">
-              {tasks.slice(1).length === 0 && <div className="empty">No upcoming rooms</div>}
+              {tasks.slice(1).length === 0 && <div className="empty">{translations[language].noUpcomingRooms}</div>}
               {tasks.slice(1).map((task) => (
                 <div className="mini-room" key={task.task_id}>
-                  <div>Room {task.room_number}</div>
+                  <div>{translations[language].room} {task.room_number}</div>
                   <div className="mini-battery">
-                    Battery change: {task.battery_change_required ? 'Yes' : 'No'}
+                    {translations[language].batteryChange} {task.battery_change_required ? translations[language].yes : translations[language].no}
                   </div>
                 </div>
               ))}
@@ -258,23 +346,23 @@ const Dashboard = () => {
           </aside>
 
           <aside className="mobile-stats">
-            <h3>Stats</h3>
+            <h3>{translations[language].stats}</h3>
             <div className="stats-list">
-              {!overall && <div className="empty">No stats</div>}
+              {!overall && <div className="empty">{translations[language].noStats}</div>}
 
               {overall && (
                 <div className="stat-card">
-                  <div>Total rooms cleaned: {fmt(overall.total_rooms_cleaned)}</div>
-                  <div>Avg rooms per shift: {fmt(overall.avg_rooms_per_shift_overall)}</div>
-                  <div>Avg time per room: {fmt(overall.avg_time_per_room_overall)} minutes</div>
-                  <div>Working hours: {fmt(overall.total_working_hours)}</div>
-                  <div>Active cleaning hours: {fmt(overall.total_active_cleaning_hours)}</div>
-                  <div>Completion rate: {fmt(overall.overall_completion_rate)}%</div>
-                  <div>Tasks incomplete: {fmt(overall.total_tasks_incomplete)}</div>
-                  <div>Emergency handled: {fmt(overall.total_emergency_tasks_handled)}</div>
-                  <div>Battery changes: {fmt(overall.total_battery_changes_performed)}</div>
-                  <div>On-time attendance: {fmt(overall.avg_on_time_shift_attendance)}%</div>
-                  <div>Break usage: {fmt(overall.avg_break_usage)} minutes</div>
+                  <div>{translations[language].totalRoomsCleaned} {fmt(overall.total_rooms_cleaned)}</div>
+                  <div>{translations[language].avgRoomsPerShift} {fmt(overall.avg_rooms_per_shift_overall)}</div>
+                  <div>{translations[language].avgTimePerRoom} {fmt(overall.avg_time_per_room_overall)} {translations[language].minutes}</div>
+                  <div>{translations[language].workingHours} {fmt(overall.total_working_hours)}</div>
+                  <div>{translations[language].activeCleaningHours} {fmt(overall.total_active_cleaning_hours)}</div>
+                  <div>{translations[language].completionRate} {fmt(overall.overall_completion_rate)}{translations[language].percent}</div>
+                  <div>{translations[language].tasksIncomplete} {fmt(overall.total_tasks_incomplete)}</div>
+                  <div>{translations[language].emergencyHandled} {fmt(overall.total_emergency_tasks_handled)}</div>
+                  <div>{translations[language].batteryChanges} {fmt(overall.total_battery_changes_performed)}</div>
+                  <div>{translations[language].onTimeAttendance} {fmt(overall.avg_on_time_shift_attendance)}{translations[language].percent}</div>
+                  <div>{translations[language].breakUsage} {fmt(overall.avg_break_usage)} {translations[language].minutes}</div>
                 </div>
               )}
             </div>

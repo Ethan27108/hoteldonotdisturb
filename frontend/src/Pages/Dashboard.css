@@ -32,6 +32,21 @@ html,body,#root{height:100%}
   gap:8px;
 }
 .top-right{ display:flex; gap:8px; align-items:center; }
+.language-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+.language-selector label {
+  margin: 0;
+}
+.language-selector select {
+  padding: 2px 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
 
 .btn{
   background:var(--accent);
