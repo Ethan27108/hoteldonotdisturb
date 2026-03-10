@@ -102,56 +102,154 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-        <label>{translations[language].language}:</label>
-        <select value={language} onChange={(e) => setLanguage(e.target.value as 'en' | 'fr')}>
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh',
+      backgroundColor: '#f5f5f5',
+      fontFamily: 'Arial, sans-serif'
+    }}>
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
+      }}>
+        <label style={{ fontSize: '14px', color: '#333' }}>{translations[language].language}:</label>
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value as 'en' | 'fr')}
+          style={{
+            padding: '4px 8px',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontSize: '14px'
+          }}
+        >
           <option value="en">{translations[language].english}</option>
           <option value="fr">{translations[language].french}</option>
         </select>
       </div>
-      <h2>{translations[language].login}</h2>
-      {message && (
-        <div
-          style={{
-            color: message === 'Logged in successfully!' ? 'green' : 'red',
-            marginBottom: '1rem',
-          }}
-        >
-          {message}
-        </div>
-      )}
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '0.5rem' }}>
-          <label>{translations[language].username}</label><br />
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
-        <div style={{ marginBottom: '0.5rem' }}>
-          <label>{translations[language].password}</label><br />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <div style={{ marginBottom: '0.5rem' }}>
-          <label>{translations[language].role}</label><br />
-          <select value={rolePage} onChange={(e) => setRolePage(e.target.value)} required>
-            <option value="">{translations[language].selectRole}</option>
-            <option value="maid">{translations[language].maid}</option>
-            <option value="admin">{translations[language].admin}</option>
-          </select>
-        </div>
-        <button type="submit" disabled={loading}>
-          {loading ? translations[language].loggingIn : translations[language].loginButton}
-        </button>
-      </form>
+      <div style={{
+        backgroundColor: 'white',
+        padding: '2rem',
+        borderRadius: '8px',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        width: '100%',
+        maxWidth: '400px'
+      }}>
+        <h2 style={{
+          textAlign: 'center',
+          marginBottom: '1.5rem',
+          color: '#333',
+          fontSize: '24px'
+        }}>{translations[language].login}</h2>
+        {message && (
+          <div
+            style={{
+              color: message === 'Logged in successfully!' ? 'green' : 'red',
+              marginBottom: '1rem',
+              textAlign: 'center',
+              fontSize: '14px'
+            }}
+          >
+            {message}
+          </div>
+        )}
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              fontSize: '14px',
+              color: '#555'
+            }}>{translations[language].username}</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              fontSize: '14px',
+              color: '#555'
+            }}>{translations[language].password}</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              fontSize: '14px',
+              color: '#555'
+            }}>{translations[language].role}</label>
+            <select
+              value={rolePage}
+              onChange={(e) => setRolePage(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">{translations[language].selectRole}</option>
+              <option value="maid">{translations[language].maid}</option>
+              <option value="admin">{translations[language].admin}</option>
+            </select>
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '12px',
+              backgroundColor: loading ? '#ccc' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '16px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.3s'
+            }}
+            onMouseOver={(e) => !loading && (e.currentTarget.style.backgroundColor = '#0056b3')}
+            onMouseOut={(e) => !loading && (e.currentTarget.style.backgroundColor = '#007bff')}
+          >
+            {loading ? translations[language].loggingIn : translations[language].loginButton}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
