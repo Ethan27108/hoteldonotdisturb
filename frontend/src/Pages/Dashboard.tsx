@@ -1,6 +1,18 @@
 import SwitchButton from 'Components/SwitchButton'
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { 
+  Home, 
+  Clock, 
+  TrendingUp, 
+  CheckCircle, 
+  AlertTriangle, 
+  Battery, 
+  Calendar, 
+  Coffee,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react'
 import './Dashboard.css'
 
 const translations = {
@@ -111,6 +123,11 @@ const Dashboard = () => {
   const [overall, setOverall] = useState<any>(null)
   const navigate = useNavigate()
   const [language, setLanguage] = useState<'en' | 'fr'>('en')
+  const [expandedGroups, setExpandedGroups] = useState<{[key: string]: boolean}>({
+    performance: true,
+    time: true,
+    issues: true
+  })
 
   // Load language from localStorage
   useEffect(() => {
@@ -129,6 +146,13 @@ const Dashboard = () => {
   const fmt = (v: any) => {
     const n = Number(v)
     return Number.isFinite(n) ? n.toFixed(2) : '-'
+  }
+
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupKey]: !prev[groupKey]
+    }))
   }
 
   const getMaidId = async (username: string | null) => {
@@ -351,18 +375,128 @@ const Dashboard = () => {
               {!overall && <div className="empty">{translations[language].noStats}</div>}
 
               {overall && (
-                <div className="stat-card">
-                  <div>{translations[language].totalRoomsCleaned} {fmt(overall.total_rooms_cleaned)}</div>
-                  <div>{translations[language].avgRoomsPerShift} {fmt(overall.avg_rooms_per_shift_overall)}</div>
-                  <div>{translations[language].avgTimePerRoom} {fmt(overall.avg_time_per_room_overall)} {translations[language].minutes}</div>
-                  <div>{translations[language].workingHours} {fmt(overall.total_working_hours)}</div>
-                  <div>{translations[language].activeCleaningHours} {fmt(overall.total_active_cleaning_hours)}</div>
-                  <div>{translations[language].completionRate} {fmt(overall.overall_completion_rate)}{translations[language].percent}</div>
-                  <div>{translations[language].tasksIncomplete} {fmt(overall.total_tasks_incomplete)}</div>
-                  <div>{translations[language].emergencyHandled} {fmt(overall.total_emergency_tasks_handled)}</div>
-                  <div>{translations[language].batteryChanges} {fmt(overall.total_battery_changes_performed)}</div>
-                  <div>{translations[language].onTimeAttendance} {fmt(overall.avg_on_time_shift_attendance)}{translations[language].percent}</div>
-                  <div>{translations[language].breakUsage} {fmt(overall.avg_break_usage)} {translations[language].minutes}</div>
+                <div className="stats-grid">
+                  {/* Performance Stats */}
+                  <div className="stats-group">
+                    <h4 
+                      className="stats-group-header" 
+                      onClick={() => toggleGroup('performance')}
+                    >
+                      {expandedGroups.performance ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      Performance
+                    </h4>
+                    {expandedGroups.performance && (
+                      <>
+                        <div className="stat-item">
+                          <Home className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].totalRoomsCleaned}</span>
+                            <span className="stat-value">{fmt(overall.total_rooms_cleaned)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <TrendingUp className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].avgRoomsPerShift}</span>
+                            <span className="stat-value">{fmt(overall.avg_rooms_per_shift_overall)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <Clock className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].avgTimePerRoom}</span>
+                            <span className="stat-value">{fmt(overall.avg_time_per_room_overall)} {translations[language].minutes}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <CheckCircle className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].completionRate}</span>
+                            <span className="stat-value">{fmt(overall.overall_completion_rate)}{translations[language].percent}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Time Stats */}
+                  <div className="stats-group">
+                    <h4 
+                      className="stats-group-header" 
+                      onClick={() => toggleGroup('time')}
+                    >
+                      {expandedGroups.time ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      Time
+                    </h4>
+                    {expandedGroups.time && (
+                      <>
+                        <div className="stat-item">
+                          <Clock className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].workingHours}</span>
+                            <span className="stat-value">{fmt(overall.total_working_hours)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <Clock className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].activeCleaningHours}</span>
+                            <span className="stat-value">{fmt(overall.total_active_cleaning_hours)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <Coffee className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].breakUsage}</span>
+                            <span className="stat-value">{fmt(overall.avg_break_usage)} {translations[language].minutes}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Issues & Special Tasks */}
+                  <div className="stats-group">
+                    <h4 
+                      className="stats-group-header" 
+                      onClick={() => toggleGroup('issues')}
+                    >
+                      {expandedGroups.issues ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      Issues & Tasks
+                    </h4>
+                    {expandedGroups.issues && (
+                      <>
+                        <div className="stat-item">
+                          <AlertTriangle className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].tasksIncomplete}</span>
+                            <span className="stat-value">{fmt(overall.total_tasks_incomplete)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <AlertTriangle className="stat-icon emergency-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].emergencyHandled}</span>
+                            <span className="stat-value">{fmt(overall.total_emergency_tasks_handled)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <Battery className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].batteryChanges}</span>
+                            <span className="stat-value">{fmt(overall.total_battery_changes_performed)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <Calendar className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].onTimeAttendance}</span>
+                            <span className="stat-value">{fmt(overall.avg_on_time_shift_attendance)}{translations[language].percent}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
