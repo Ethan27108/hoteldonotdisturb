@@ -30,7 +30,6 @@ const translations = {
     emergency: 'Emergency',
     status: 'Status',
     room: 'Room',
-    battery: 'Battery',
     save: 'Save',
     editRoom: 'Edit Room',
     loadingDashboard: 'Loading Admin Dashboard...',
@@ -718,7 +717,6 @@ const AdminDashboard: React.FC<Props> = ({ token, language }) => {
                 >
                   <h4>{t.room} {r.room_number}</h4>
                   <p>{t.status}: {getStatusLabel(r.status)}</p>
-                  <p>{t.battery}: {r.battery_level}%</p>
                 </div>
               </div>
             );
