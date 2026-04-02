@@ -1,7 +1,57 @@
-// ...existing code...
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './ProfileMaid.css'
+
+const translations = {
+  en: {
+    profile: 'Profile',
+    returnToDashboard: 'Return to Maid Dashboard',
+    editProfile: 'Edit Profile',
+    cancelEdit: 'Cancel Edit',
+    name: 'Name',
+    profileInfo: 'Profile Info',
+    username: 'Username',
+    email: 'Email',
+    currentPassword: 'Current Password (required to change password)',
+    newPassword: 'New Password',
+    save: 'Save',
+    reset: 'Reset',
+    previousCleaningLogs: 'Previous Cleaning Logs',
+    loadLogs: 'Load Logs',
+    noLogs: 'No previous cleaning logs',
+    room: 'Room',
+    assigned: 'Assigned:',
+    started: 'Started:',
+    finished: 'Finished:',
+    language: 'Language',
+    english: 'English',
+    french: 'French',
+  },
+  fr: {
+    profile: 'Profil',
+    returnToDashboard: 'Retour au tableau de bord de la femme de chambre',
+    editProfile: 'Modifier le profil',
+    cancelEdit: 'Annuler la modification',
+    name: 'Nom',
+    profileInfo: 'Informations sur le profil',
+    username: 'Nom d\'utilisateur',
+    email: 'Email',
+    currentPassword: 'Mot de passe actuel (requis pour changer le mot de passe)',
+    newPassword: 'Nouveau mot de passe',
+    save: 'Sauvegarder',
+    reset: 'Réinitialiser',
+    previousCleaningLogs: 'Journaux de nettoyage précédents',
+    loadLogs: 'Charger les journaux',
+    noLogs: 'Aucun journal de nettoyage précédent',
+    room: 'Chambre',
+    assigned: 'Assigné:',
+    started: 'Commencé:',
+    finished: 'Terminé:',
+    language: 'Langue',
+    english: 'Anglais',
+    french: 'Français',
+  },
+}
 
 interface CleaningLog {
   log_id: number
@@ -35,6 +85,18 @@ const ProfileMaid = () => {
   const [maidId, setMaidId] = useState<string | null>(null)
   const [logs, setLogs] = useState<CleaningLog[]>([])
   const [serverMessage, setServerMessage] = useState<string | null>(null)
+  const [language, setLanguage] = useState<'en' | 'fr'>('en')
+
+  // Load language from localStorage
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'fr' | null
+    if (savedLanguage) setLanguage(savedLanguage)
+  }, [])
+
+  // Save language to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('language', language)
+  }, [language])
 
   // Profile states
   const [profile, setProfile] = useState<MaidProfile | null>(null)
@@ -179,16 +241,24 @@ const ProfileMaid = () => {
   return (
     <div className="profile-container">
       <div className="profile-header">
-        <h2>Profile</h2>
+        <div className="header-top">
+          <h2>{translations[language].profile}</h2>
+          <div className="language-selector">
+            <label>{translations[language].language}:</label>
+            <select value={language} onChange={(e) => setLanguage(e.target.value as 'en' | 'fr')}>
+              <option value="en">{translations[language].english}</option>
+              <option value="fr">{translations[language].french}</option>
+            </select>
+          </div>
+        </div>
         <div className="profile-actions">
           <button className="btn return-btn" onClick={handleReturnToDashboard}>
-            Return to Maid Dashboard
+            {translations[language].returnToDashboard}
           </button>
           <button
             className="btn ghost"
             onClick={() => {
               if (editMode) {
-                // cancel: revert form to last fetched profile
                 if (profile) {
                   setProfileForm({
                     name: profile.name || '',
@@ -204,7 +274,7 @@ const ProfileMaid = () => {
               setEditMode(!editMode)
             }}
           >
-            {editMode ? 'Cancel Edit' : 'Edit Profile'}
+            {editMode ? translations[language].cancelEdit : translations[language].editProfile}
           </button>
         </div>
       </div>
@@ -214,7 +284,7 @@ const ProfileMaid = () => {
         <div className="profile-info">
           <form className="profile-form" onSubmit={handleProfileEditSubmit}>
             <div className="form-row">
-              <label>Name</label>
+              <label>{translations[language].name}</label>
               <input
                 type="text"
                 value={profileForm.name}
@@ -224,7 +294,7 @@ const ProfileMaid = () => {
             </div>
 
             <div className="form-row">
-              <label>Profile Info</label>
+              <label>{translations[language].profileInfo}</label>
               <textarea
                 value={profileForm.profile_info}
                 onChange={(e) => setProfileForm({ ...profileForm, profile_info: e.currentTarget.value })}
@@ -233,7 +303,7 @@ const ProfileMaid = () => {
             </div>
 
             <div className="form-row">
-              <label>Username</label>
+              <label>{translations[language].username}</label>
               <input
                 type="text"
                 value={profileForm.username}
@@ -243,7 +313,7 @@ const ProfileMaid = () => {
             </div>
 
             <div className="form-row">
-              <label>Email</label>
+              <label>{translations[language].email}</label>
               <input
                 type="email"
                 value={profileForm.email}
@@ -255,7 +325,7 @@ const ProfileMaid = () => {
             {/* Password fields — editable when in edit mode.
                 Backend requires current_password when changing new_password. */}
             <div className="form-row">
-              <label>Current Password (required to change password)</label>
+              <label>{translations[language].currentPassword}</label>
               <input
                 type="password"
                 value={profileForm.current_password}
@@ -264,7 +334,7 @@ const ProfileMaid = () => {
               />
             </div>
             <div className="form-row">
-              <label>New Password</label>
+              <label>{translations[language].newPassword}</label>
               <input
                 type="password"
                 value={profileForm.new_password}
@@ -275,7 +345,7 @@ const ProfileMaid = () => {
 
             <div className="form-actions">
               <button type="submit" className="btn" disabled={!editMode}>
-                Save
+                {translations[language].save}
               </button>
               <button
                 type="button"
@@ -285,7 +355,7 @@ const ProfileMaid = () => {
                   fetchProfile()
                 }}
               >
-                Reset
+                {translations[language].reset}
               </button>
             </div>
 
@@ -297,24 +367,24 @@ const ProfileMaid = () => {
       {/* === Existing cleaning logs section === */}
       <div className="previous-logs">
         <div className="prev-header">
-          <h3>Previous Cleaning Logs</h3>
+          <h3>{translations[language].previousCleaningLogs}</h3>
           <button className="btn small" onClick={() => fetchPrevLogs(maidId)}>
-            Load Logs
+            {translations[language].loadLogs}
           </button>
         </div>
 
         <div className="logs-list">
-          {logs.length === 0 && <div className="empty">No previous cleaning logs</div>}
+          {logs.length === 0 && <div className="empty">{translations[language].noLogs}</div>}
           {logs.map((log) => (
             <div key={log.log_id} className="log-item">
               <div className="log-row">
-                <div className="log-room">Room {log.room_number}</div>
+                <div className="log-room">{translations[language].room} {log.room_number}</div>
                 <div className="log-task">{log.report}</div>
               </div>
               <div className="log-times">
-                <div>Assigned: {log.assigned_time}</div>
-                <div>Started: {log.start_time}</div>
-                <div>Finished: {log.finish_time}</div>
+                <div>{translations[language].assigned} {log.assigned_time}</div>
+                <div>{translations[language].started} {log.start_time}</div>
+                <div>{translations[language].finished} {log.finish_time}</div>
               </div>
             </div>
           ))}

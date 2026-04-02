@@ -3,6 +3,70 @@ import "./AdminDashboard.css";
 import { Plus, Trash2, Layers, ZoomIn, ZoomOut } from "lucide-react";
 import CreateRoomForm from "../../Components/Admin/CreateRoomForm";
 
+const translations = {
+  en: {
+    adminDashboard: 'Admin Dashboard',
+    createNewFloor: 'Create New Floor',
+    floorNumber: 'Enter floor number',
+    cancel: 'Cancel',
+    create: 'Create',
+    enterFloorNumber: 'Enter a floor number.',
+    deleteFloor: 'Delete Floor',
+    removeAllRooms: 'This will remove all rooms on this floor.',
+    deleting: 'Deleting...',
+    delete: 'Delete',
+    deleteRoom: 'Delete Room',
+    deleteRoomConfirm: 'Are you sure you want to delete Room',
+    cannotBeUndone: 'This action cannot be undone.',
+    noRoomsFloor: 'No rooms on this floor.',
+    newFloor: 'New Floor',
+    addRoom: 'Add Room',
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
+    available: 'Cleaned',
+    dirty: 'Dirty',
+    cleaning: 'Cleaning',
+    doNotDisturb: 'Do Not Disturb',
+    emergency: 'Emergency',
+    status: 'Status',
+    room: 'Room',
+    save: 'Save',
+    editRoom: 'Edit Room',
+    loadingDashboard: 'Loading Admin Dashboard...',
+  },
+  fr: {
+    adminDashboard: 'Tableau de bord administrateur',
+    createNewFloor: 'Créer un nouvel étage',
+    floorNumber: 'Entrez le numéro de l\'étage',
+    cancel: 'Annuler',
+    create: 'Créer',
+    enterFloorNumber: 'Entrez un numéro d\'étage.',
+    deleteFloor: 'Supprimer l\'étage',
+    removeAllRooms: 'Cela supprimera toutes les salles de cet étage.',
+    deleting: 'Suppression...',
+    delete: 'Supprimer',
+    deleteRoom: 'Supprimer la salle',
+    deleteRoomConfirm: 'Êtes-vous sûr de vouloir supprimer la salle',
+    cannotBeUndone: 'Cette action ne peut pas être annulée.',
+    noRoomsFloor: 'Aucune salle à cet étage.',
+    newFloor: 'Nouvel étage',
+    addRoom: 'Ajouter une salle',
+    zoomIn: 'Zoomer',
+    zoomOut: 'Dézoomer',
+    available: 'Nettoyé',
+    dirty: 'Sale',
+    cleaning: 'En nettoyage',
+    doNotDisturb: 'Ne pas déranger',
+    emergency: 'Urgence',
+    status: 'Statut',
+    room: 'Salle',
+    battery: 'Batterie',
+    save: 'Enregistrer',
+    editRoom: 'Modifier la salle',
+    loadingDashboard: 'Chargement du tableau de bord administrateur...',
+  },
+};
+
 interface Floor {
   id: string;
   floor_number: number;
@@ -21,9 +85,11 @@ interface Room {
 
 interface Props {
   token: string | null;
+  language: 'en' | 'fr';
 }
 
-const AdminDashboard: React.FC<Props> = ({ token }) => {
+const AdminDashboard: React.FC<Props> = ({ token, language }) => {
+  const t = translations[language];
   const [floors, setFloors] = useState<Floor[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [currentFloor, setCurrentFloor] = useState<Floor | null>(() => {
@@ -234,11 +300,11 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
   // Map backend status to display-friendly label
   const getStatusLabel = (backendStatus: string): string => {
     const map: Record<string, string> = {
-      clean: "Available",
-      dirty: "Dirty",
-      cleaning_in_progress: "Cleaning",
-      do_not_disturb: "Do Not Disturb",
-      emergency_clean: "Emergency",
+      clean: t.available,
+      dirty: t.dirty,
+      cleaning_in_progress: t.cleaning,
+      do_not_disturb: t.doNotDisturb,
+      emergency_clean: t.emergency,
     };
     return map[backendStatus] || backendStatus;
   };
@@ -260,42 +326,42 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
     return (
       <div className="center">
         <div className="loader" />
-        <p>Loading Admin Dashboard...</p>
+        <p>{t.loadingDashboard}</p>
       </div>
     );
 
   return (
     <div className="admin-dash">
       <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div style={{ fontSize: 28, fontWeight: 700, color: '#2563eb', letterSpacing: 1 }}>Admin Dashboard</div>
+        <div style={{ fontSize: 28, fontWeight: 700, color: '#2563eb', letterSpacing: 1 }}>{t.adminDashboard}</div>
       </div>
       {/* Only one header with logout button at right */}
       {/* CREATE FLOOR MODAL */}
       {showCreateFloor && (
         <div className="modal-bg" onClick={() => setShowCreateFloor(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Create New Floor</h3>
+            <h3>{t.createNewFloor}</h3>
 
             <input
               type="number"
               min={1}
               value={newFloorNumber}
               onChange={(e) => setNewFloorNumber(e.target.value)}
-              placeholder="Enter floor number"
+              placeholder={t.floorNumber}
             />
 
             {createFloorError && <p className="error">{createFloorError}</p>}
 
             <div className="modal-actions">
               <button className="btn" onClick={() => setShowCreateFloor(false)}>
-                Cancel
+                {t.cancel}
               </button>
 
               <button
                 className="btn primary"
                 onClick={async () => {
                   if (!newFloorNumber) {
-                    setCreateFloorError("Enter a floor number.");
+                    setCreateFloorError(t.enterFloorNumber);
                     return;
                   }
 
@@ -342,7 +408,7 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
                   }
                 }}
               >
-                Create
+                {t.create}
               </button>
             </div>
           </div>
@@ -375,7 +441,7 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
           <div className="grid-controls">
             <button
               className="btn zoom-btn"
-              title="Zoom in"
+              title={t.zoomIn}
               onClick={() => setScale((s) => Math.min(2, Number((s + 0.1).toFixed(1))))}
             >
               <ZoomIn size={16} />
@@ -383,7 +449,7 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
 
             <button
               className="btn zoom-btn"
-              title="Zoom out"
+              title={t.zoomOut}
               onClick={() => setScale((s) => Math.max(0.5, Number((s - 0.1).toFixed(1))))}
             >
               <ZoomOut size={16} />
@@ -392,7 +458,7 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
 
           {/* Move New Floor next to Add Room */}
           <button className="btn green" onClick={() => setShowCreateFloor(true)}>
-            <Layers size={16} /> New Floor
+            <Layers size={16} /> {t.newFloor}
           </button>
 
           <button
@@ -401,7 +467,7 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
             onClick={() => setShowCreateRoom(true)}
             disabled={!currentFloor}
           >
-            <Plus size={16} /> Add Room
+            <Plus size={16} /> {t.addRoom}
           </button>
         </div>
       </div>
@@ -410,12 +476,12 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
       {showDeleteConfirm && currentFloor && (
         <div className="modal-bg" onClick={() => setShowDeleteConfirm(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Delete Floor {currentFloor.floor_number}?</h3>
-            <p>This will remove all rooms on this floor.</p>
+            <h3>{t.deleteFloor} {currentFloor.floor_number}?</h3>
+            <p>{t.removeAllRooms}</p>
 
             <div className="modal-actions">
               <button className="btn" onClick={() => setShowDeleteConfirm(false)}>
-                Cancel
+                {t.cancel}
               </button>
 
               <button
@@ -443,7 +509,7 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
                   }
                 }}
               >
-                {deletingFloor ? "Deleting..." : "Delete"}
+                {deletingFloor ? t.deleting : t.delete}
               </button>
             </div>
           </div>
@@ -455,6 +521,7 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
         <CreateRoomForm
           floor_id={currentFloor.id}
           onClose={() => setShowCreateRoom(false)}
+          language={language}
           onSubmit={async (data) => {
             try {
               // Build request body according to backend expectations
@@ -510,29 +577,29 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
       {showEditRoom && selectedRoom && (
         <div className="modal-bg" onClick={() => setShowEditRoom(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Edit Room {selectedRoom.room_number}</h3>
+            <h3>{t.editRoom} {selectedRoom.room_number}</h3>
             
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginTop: '12px' }}>Status</label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginTop: '12px' }}>{t.status}</label>
             <select
               value={editStatus}
               onChange={(e) => setEditStatus(e.target.value)}
               style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', marginTop: '4px', fontSize: '15px' }}
             >
-              <option value="clean">Available</option>
-              <option value="cleaning_in_progress">Cleaning</option>
-              <option value="dirty">Dirty</option>
-              <option value="do_not_disturb">Do Not Disturb</option>
-              <option value="emergency_clean">Emergency</option>
+              <option value="clean">{t.available}</option>
+              <option value="cleaning_in_progress">{t.cleaning}</option>
+              <option value="dirty">{t.dirty}</option>
+              <option value="do_not_disturb">{t.doNotDisturb}</option>
+              <option value="emergency_clean">{t.emergency}</option>
             </select>
 
             <div className="modal-actions">
               <button className="btn" onClick={() => setShowEditRoom(false)}>
-                Cancel
+                {t.cancel}
               </button>
               <button
                 className="btn red"
                 onClick={async () => {
-                  if (!window.confirm(`Are you sure you want to delete Room ${selectedRoom.room_number}? This action cannot be undone.`)) {
+                  if (!window.confirm(`${t.deleteRoomConfirm} ${selectedRoom.room_number}? ${t.cannotBeUndone}`)) {
                     return;
                   }
 
@@ -550,19 +617,19 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
 
                     if (resp.status === 200) {
                       setShowEditRoom(false);
-                      alert('Room deleted successfully');
+                      alert(language === 'en' ? 'Room deleted successfully' : 'Salle supprimée avec succès');
                       fetchRooms(currentFloor);
                     } else {
                       const error = await resp.json();
-                      alert(error.error || "Failed to delete room");
+                      alert(error.error || (language === 'en' ? "Failed to delete room" : "Échec de la suppression de la salle"));
                     }
                   } catch (err) {
                     console.error("Error deleting room:", err);
-                    alert("Failed to delete room");
+                    alert(language === 'en' ? "Failed to delete room" : "Échec de la suppression de la salle");
                   }
                 }}
               >
-                Delete Room
+                {t.deleteRoom}
               </button>
               <button
                 className="btn primary"
@@ -596,15 +663,15 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
                         }
                       }
                       console.error("Edit room failed:", resp.status, bodyText);
-                      alert(bodyText || "Failed to edit room");
+                      alert(bodyText || (language === 'en' ? "Failed to edit room" : "Échec de la modification de la salle"));
                     }
                   } catch (err) {
                     console.error("Network error:", err);
-                    alert("Network error");
+                    alert(language === 'en' ? "Network error" : "Erreur réseau");
                   }
                 }}
               >
-                Save
+                {t.save}
               </button>
             </div>
           </div>
@@ -613,7 +680,7 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
 
       {/* ROOM GRID - place rooms by pos_x / pos_y inside this grid */}
       {rooms.length === 0 ? (
-        <p className="muted">No rooms on this floor.</p>
+        <p className="muted">{t.noRoomsFloor}</p>
       ) : (
         <div
           className="room-grid"
@@ -648,9 +715,8 @@ const AdminDashboard: React.FC<Props> = ({ token }) => {
                   }}
                   style={{ cursor: 'pointer' }}
                 >
-                  <h4>Room {r.room_number}</h4>
-                  <p>Status: {getStatusLabel(r.status)}</p>
-                  <p>Battery: {r.battery_level}%</p>
+                  <h4>{t.room} {r.room_number}</h4>
+                  <p>{t.status}: {getStatusLabel(r.status)}</p>
                 </div>
               </div>
             );

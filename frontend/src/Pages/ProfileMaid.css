@@ -10,10 +10,30 @@
 }
 
 .profile-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.language-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+.language-selector label {
+  margin: 0;
+}
+.language-selector select {
+  padding: 4px 8px;
+  border: 1px solid #e6e9ef;
+  border-radius: 4px;
+  font-size: 0.9rem;
 }
 .profile-header h2{ margin:0; font-size:1.2rem; }
 

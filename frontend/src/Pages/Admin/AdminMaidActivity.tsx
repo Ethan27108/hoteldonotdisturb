@@ -4,6 +4,59 @@ import './AdminMaidActivity.css'
 import CreateMaidForm from '../../Components/Admin/CreateMaidForm'
 import EditMaidScheduleForm from '../../Components/Admin/EditMaidScheduleForm'
 
+const translations = {
+  en: {
+    maidActivity: 'Maid Activity',
+    addMaid: 'Add Maid',
+    noMaidsAvailable: 'No maids available',
+    active: 'Active',
+    inactive: 'Inactive',
+    viewStats: 'View Stats',
+    removeMaid: 'Remove Maid',
+    maidStats: 'Maid Stats',
+    loadingStats: 'Loading stats...',
+    noStatsAvailable: 'No stats available.',
+    totalRoomsCleaned: 'Total Rooms Cleaned',
+    avgTimePerRoom: 'Avg Time / Room',
+    workingHours: 'Working Hours',
+    completionRate: 'Completion Rate',
+    completion: 'Completion',
+    noDailyStats: 'No daily stats',
+    editSchedule: 'Edit Schedule',
+    close: 'Close',
+    totalRoomsCleanedLabel: 'total_rooms_cleaned',
+    avgTimePerRoomLabel: 'avg_time_per_room',
+    workingHoursLabel: 'working_hours',
+    editScheduleButton: 'Edit Schedule',
+    loadingMaids: 'Loading maids...',
+  },
+  fr: {
+    maidActivity: 'Activité des femmes de chambre',
+    addMaid: 'Ajouter une femme de chambre',
+    noMaidsAvailable: 'Aucune femme de chambre disponible',
+    active: 'Actif',
+    inactive: 'Inactif',
+    viewStats: 'Voir les statistiques',
+    removeMaid: 'Supprimer la femme de chambre',
+    maidStats: 'Statistiques de la femme de chambre',
+    loadingStats: 'Chargement des statistiques...',
+    noStatsAvailable: 'Aucune statistique disponible.',
+    totalRoomsCleaned: 'Salles nettoyées au total',
+    avgTimePerRoom: 'Temps moyen par salle',
+    workingHours: 'Heures de travail',
+    completionRate: 'Taux de complétion',
+    completion: 'Complétude',
+    noDailyStats: 'Aucune statistique quotidienne',
+    editSchedule: 'Modifier l\'horaire',
+    close: 'Fermer',
+    totalRoomsCleanedLabel: 'total_rooms_cleaned',
+    avgTimePerRoomLabel: 'avg_time_per_room',
+    workingHoursLabel: 'working_hours',
+    editScheduleButton: 'Modifier l\'horaire',
+    loadingMaids: 'Chargement des femmes de chambre...',
+  },
+}
+
 interface Maid {
   maid_id: string
   name: string
@@ -12,9 +65,11 @@ interface Maid {
 
 interface Props {
   token: string | null
+  language: 'en' | 'fr'
 }
 
-const AdminMaidActivity: React.FC<Props> = ({ token }) => {
+const AdminMaidActivity: React.FC<Props> = ({ token, language }) => {
+  const t = translations[language]
   const [maids, setMaids] = useState<Maid[]>([])
   const [loading, setLoading] = useState(true)
   const [showStats, setShowStats] = useState(false)
@@ -59,7 +114,7 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
     return (
       <div className="center">
         <div className="loader"></div>
-        <p>Loading maids...</p>
+        <p>{t.loadingMaids}</p>
       </div>
     )
   }
@@ -67,28 +122,28 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
   return (
     <div className="maid-activity">
       <header className="maid-header">
-        <h2>Maid Activity</h2>
+        <h2>{t.maidActivity}</h2>
         <button className="btn primary" onClick={() => setShowCreateMaid(true)}>
-          <Plus size={16} /> Add Maid
+          <Plus size={16} /> {t.addMaid}
         </button>
       </header>
 
       <div className="maid-list">
         {maids.length === 0 ? (
-          <div className="empty">No maids available</div>
+          <div className="empty">{t.noMaidsAvailable}</div>
         ) : (
           maids.map((m) => (
             <div key={m.maid_id} className="maid-card">
               <div className="maid-info">
                 <div className="maid-name">{m.name}</div>
                 <div className={`maid-status status-${m.user__is_active ? 'active' : 'inactive'}`}>
-                  {m.user__is_active ? 'Active' : 'Inactive'}
+                  {m.user__is_active ? t.active : t.inactive}
                 </div>
               </div>
               <div className="maid-actions">
                 <button
                   className="btn secondary"
-                  title="View Stats"
+                  title={t.viewStats}
                   onClick={async () => {
                     setSelectedMaid(m)
                     setShowStats(true)
@@ -121,9 +176,9 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
 
                 <button 
                   className="btn red" 
-                  title="Remove Maid"
+                  title={t.removeMaid}
                   onClick={async () => {
-                    if (!window.confirm(`Are you sure you want to delete ${m.name}? This action cannot be undone.`)) {
+                    if (!window.confirm(`${language === 'en' ? 'Are you sure you want to delete' : 'Êtes-vous sûr de vouloir supprimer'} ${m.name}? ${language === 'en' ? 'This action cannot be undone.' : 'Cette action ne peut pas être annulée.'}`)) {
                       return;
                     }
 
@@ -138,15 +193,15 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
                       });
 
                       if (resp.ok) {
-                        alert('Maid deleted successfully');
+                        alert(language === 'en' ? 'Maid deleted successfully' : 'Femme de chambre supprimée avec succès');
                         fetchMaids(); // Refresh the list
                       } else {
                         const error = await resp.json();
-                        alert(error.error || 'Failed to delete maid');
+                        alert(error.error || (language === 'en' ? 'Failed to delete maid' : 'Échec de la suppression de la femme de chambre'));
                       }
                     } catch (err) {
                       console.error('Error deleting maid:', err);
-                      alert('Failed to delete maid');
+                      alert(language === 'en' ? 'Failed to delete maid' : 'Échec de la suppression de la femme de chambre');
                     }
                   }}
                 >
@@ -162,12 +217,12 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
       {showStats && selectedMaid && (
         <div className="modal-bg" onClick={() => setShowStats(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Maid Stats — {selectedMaid.name}</h3>
+            <h3>{t.maidStats} — {selectedMaid.name}</h3>
 
             {loadingStats ? (
               <div className="center">
                 <div className="loader" />
-                <p>Loading stats...</p>
+                <p>{t.loadingStats}</p>
               </div>
             ) : maidStats ? (
               <div className="maid-stats">
@@ -191,29 +246,29 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
                       <>
                         <div className="stats-cards">
                           <div className="stat-card">
-                            <div className="stat-label">Total Rooms Cleaned</div>
+                            <div className="stat-label">{t.totalRoomsCleaned}</div>
                             <div className="stat-value">{overall.total_rooms_cleaned ?? latest?.total_rooms_cleaned ?? '—'}</div>
                           </div>
 
                           <div className="stat-card">
-                            <div className="stat-label">Avg Time / Room</div>
+                            <div className="stat-label">{t.avgTimePerRoom}</div>
                             <div className="stat-value">{overall.avg_time_per_room ?? latest?.avg_time_per_room ?? '—'}</div>
                           </div>
 
                           <div className="stat-card">
-                            <div className="stat-label">Working Hours</div>
+                            <div className="stat-label">{t.workingHours}</div>
                             <div className="stat-value">{overall.working_hours ?? latest?.working_hours ?? '—'}</div>
                           </div>
 
                           <div className="stat-card">
-                            <div className="stat-label">Completion Rate</div>
+                            <div className="stat-label">{t.completionRate}</div>
                             <div className="stat-value">{pct}%</div>
                           </div>
                         </div>
 
                         <div style={{ marginBottom: 10 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ fontSize: 13, color: '#64748b' }}>Completion</div>
+                            <div style={{ fontSize: 13, color: '#64748b' }}>{t.completion}</div>
                             <div style={{ flex: 1 }}>
                               <div className="progress" aria-hidden>
                                 <div className="progress-fill" style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
@@ -233,7 +288,7 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
                                 </tr>
                               ))
                             ) : (
-                              <tr><td className="key">No daily stats</td><td className="value">—</td></tr>
+                              <tr><td className="key">{t.noDailyStats}</td><td className="value">—</td></tr>
                             )}
                           </tbody>
                         </table>
@@ -258,17 +313,17 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
                                   setMaidProfile(data.maid_profile);
                                   setShowEditSchedule(true);
                                 } else {
-                                  alert('Failed to load maid profile');
+                                  alert(language === 'en' ? 'Failed to load maid profile' : 'Échec du chargement du profil de la femme de chambre');
                                 }
                               } catch (err) {
                                 console.error('Error loading maid profile:', err);
-                                alert('Failed to load maid profile');
+                                alert(language === 'en' ? 'Failed to load maid profile' : 'Échec du chargement du profil de la femme de chambre');
                               }
                             }}
                           >
-                            Edit Schedule
+                            {t.editScheduleButton}
                           </button>
-                          <button className="btn" onClick={() => setShowStats(false)}>Close</button>
+                          <button className="btn" onClick={() => setShowStats(false)}>{t.close}</button>
                         </div>
                       </>
                     )
@@ -276,7 +331,7 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
                 )}
               </div>
             ) : (
-              <div className="muted">No stats available.</div>
+              <div className="muted">{t.noStatsAvailable}</div>
             )}
           </div>
         </div>
@@ -286,6 +341,7 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
       {showCreateMaid && (
         <CreateMaidForm
           onClose={() => setShowCreateMaid(false)}
+          language={language}
           onSubmit={async (data) => {
             if (!token) return;
 
@@ -307,7 +363,7 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
 
               if (!response.ok) {
                 const error = await response.json();
-                alert(error.error || 'Failed to create maid account');
+                alert(error.error || (language === 'en' ? 'Failed to create maid account' : 'Échec de la création du compte de femme de chambre'));
                 return;
               }
 
@@ -347,11 +403,11 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
                 }
               }
 
-              alert('Maid created successfully!');
+              alert(language === 'en' ? 'Maid created successfully!' : 'Femme de chambre créée avec succès!');
               fetchMaids(); // Refresh the list
             } catch (error) {
               console.error('Error creating maid:', error);
-              alert('Failed to create maid');
+              alert(language === 'en' ? 'Failed to create maid' : 'Échec de la création de la femme de chambre');
             }
           }}
         />
@@ -363,6 +419,7 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
           onClose={() => setShowEditSchedule(false)}
           maidId={selectedMaid.maid_id}
           maidName={selectedMaid.name}
+          language={language}
           initialData={{
             shift_days: maidProfile.shift_days || [],
             shift_start_time: maidProfile.shift_start_time || '',
@@ -389,7 +446,7 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
               });
 
               if (response.ok) {
-                alert('Schedule updated successfully!');
+                alert(language === 'en' ? 'Schedule updated successfully!' : 'Horaire mis à jour avec succès!');
                 // Refresh maid stats if still viewing
                 if (showStats) {
                   const resp = await fetch('/api/admin/maidStats/', {
@@ -408,11 +465,11 @@ const AdminMaidActivity: React.FC<Props> = ({ token }) => {
                 }
               } else {
                 const error = await response.json();
-                alert(error.error || 'Failed to update schedule');
+                alert(error.error || (language === 'en' ? 'Failed to update schedule' : 'Échec de la mise à jour de l\'horaire'));
               }
             } catch (error) {
               console.error('Error updating schedule:', error);
-              alert('Failed to update schedule');
+              alert(language === 'en' ? 'Failed to update schedule' : 'Échec de la mise à jour de l\'horaire');
             }
           }}
         />

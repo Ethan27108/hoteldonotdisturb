@@ -1,7 +1,88 @@
 import SwitchButton from 'Components/SwitchButton'
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { 
+  Home, 
+  Clock, 
+  TrendingUp, 
+  CheckCircle, 
+  AlertTriangle, 
+  Battery, 
+  Calendar, 
+  Coffee,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react'
 import './Dashboard.css'
+
+const translations = {
+  en: {
+    profile: 'Profile',
+    logout: 'Logout',
+    room: 'Room',
+    batteryChangeRequired: 'Battery change required:',
+    yes: 'Yes',
+    no: 'No',
+    addComment: 'Add comment about this room...',
+    startRoomClean: 'Start Room Clean',
+    stopRoomClean: 'Stop Room Clean',
+    noCurrentRoom: 'No current room assigned',
+    nextRooms: 'Next Rooms',
+    noUpcomingRooms: 'No upcoming rooms',
+    batteryChange: 'Battery change:',
+    stats: 'Stats',
+    noStats: 'No stats',
+    totalRoomsCleaned: 'Total rooms cleaned:',
+    avgRoomsPerShift: 'Avg rooms per shift:',
+    avgTimePerRoom: 'Avg time per room:',
+    workingHours: 'Working hours:',
+    activeCleaningHours: 'Active cleaning hours:',
+    completionRate: 'Completion rate:',
+    tasksIncomplete: 'Tasks incomplete:',
+    emergencyHandled: 'Emergency handled:',
+    batteryChanges: 'Battery changes:',
+    onTimeAttendance: 'On-time attendance:',
+    breakUsage: 'Break usage:',
+    minutes: 'minutes',
+    percent: '%',
+    language: 'Language',
+    english: 'English',
+    french: 'French',
+  },
+  fr: {
+    profile: 'Profil',
+    logout: 'Déconnexion',
+    room: 'Chambre',
+    batteryChangeRequired: 'Changement de batterie requis:',
+    yes: 'Oui',
+    no: 'Non',
+    addComment: 'Ajouter un commentaire sur cette chambre...',
+    startRoomClean: 'Commencer le nettoyage de la chambre',
+    stopRoomClean: 'Arrêter le nettoyage de la chambre',
+    noCurrentRoom: 'Aucune chambre actuelle assignée',
+    nextRooms: 'Chambres suivantes',
+    noUpcomingRooms: 'Aucune chambre à venir',
+    batteryChange: 'Changement de batterie:',
+    stats: 'Statistiques',
+    noStats: 'Aucune statistique',
+    totalRoomsCleaned: 'Total des chambres nettoyées:',
+    avgRoomsPerShift: 'Moyenne des chambres par quart:',
+    avgTimePerRoom: 'Temps moyen par chambre:',
+    workingHours: 'Heures de travail:',
+    activeCleaningHours: 'Heures de nettoyage actives:',
+    completionRate: 'Taux d\'achèvement:',
+    tasksIncomplete: 'Tâches incomplètes:',
+    emergencyHandled: 'Urgences traitées:',
+    batteryChanges: 'Changements de batterie:',
+    onTimeAttendance: 'Présence à l\'heure:',
+    breakUsage: 'Utilisation des pauses:',
+    minutes: 'minutes',
+    percent: '%',
+    language: 'Langue',
+    english: 'Anglais',
+    french: 'Français',
+  },
+}
 
 interface Task {
   task_id: number
@@ -41,6 +122,23 @@ const Dashboard = () => {
   const [maidId, setMaidId] = useState<string | null>(null)
   const [overall, setOverall] = useState<any>(null)
   const navigate = useNavigate()
+  const [language, setLanguage] = useState<'en' | 'fr'>('en')
+  const [expandedGroups, setExpandedGroups] = useState<{[key: string]: boolean}>({
+    performance: true,
+    time: true,
+    issues: true
+  })
+
+  // Load language from localStorage
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'fr' | null
+    if (savedLanguage) setLanguage(savedLanguage)
+  }, [])
+
+  // Save language to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('language', language)
+  }, [language])
 
   const [comment, setComment] = useState<string>('')
   const handleCommentChange = (value: string) => setComment(value)
@@ -48,6 +146,13 @@ const Dashboard = () => {
   const fmt = (v: any) => {
     const n = Number(v)
     return Number.isFinite(n) ? n.toFixed(2) : '-'
+  }
+
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupKey]: !prev[groupKey]
+    }))
   }
 
   const getMaidId = async (username: string | null) => {
@@ -188,11 +293,18 @@ const Dashboard = () => {
     <div className="mobile-container">
       <header className="mobile-topbar">
         <div className="top-right">
+          <div className="language-selector">
+            <label>{translations[language].language}:</label>
+            <select value={language} onChange={(e) => setLanguage(e.target.value as 'en' | 'fr')}>
+              <option value="en">{translations[language].english}</option>
+              <option value="fr">{translations[language].french}</option>
+            </select>
+          </div>
           <button className="btn small" onClick={() => navigate('/ProfileMaid')}>
-            Profile
+            {translations[language].profile}
           </button>
           <button className="btn small ghost" onClick={handleLogout}>
-            Logout
+            {translations[language].logout}
           </button>
         </div>
       </header>
@@ -202,10 +314,10 @@ const Dashboard = () => {
           {tasks.length > 0 ? (
             <>
               <div className="room-header">
-                <h2>Room {tasks[0].room_number}</h2>
+                <h2>{translations[language].room} {tasks[0].room_number}</h2>
                 <div className="battery">
-                  Battery change required:{' '}
-                  {tasks[0].battery_change_required ? 'Yes' : 'No'}
+                  {translations[language].batteryChangeRequired}{' '}
+                  {tasks[0].battery_change_required ? translations[language].yes : translations[language].no}
                 </div>
               </div>
 
@@ -215,14 +327,14 @@ const Dashboard = () => {
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                   handleCommentChange(e.currentTarget.value)
                 }
-                placeholder="Add comment about this room..."
+                placeholder={translations[language].addComment}
                 rows={4}
               />
 
               <div className="current-actions">
                 <SwitchButton
-                  name="Start Room Clean"
-                  secondname="Stop Room Clean"
+                  name={translations[language].startRoomClean}
+                  secondname={translations[language].stopRoomClean}
                   roomNum={tasks[0].room_number}
                   initialOn={tasks[0].status !== 'in_progress'}
                   onToggle={(on) => {
@@ -237,20 +349,20 @@ const Dashboard = () => {
               </div>
             </>
           ) : (
-            <div className="no-room">No current room assigned</div>
+            <div className="no-room">{translations[language].noCurrentRoom}</div>
           )}
         </section>
 
         <section className="bottom-area">
           <aside className="next-rooms">
-            <h3>Next Rooms</h3>
+            <h3>{translations[language].nextRooms}</h3>
             <div className="next-list">
-              {tasks.slice(1).length === 0 && <div className="empty">No upcoming rooms</div>}
+              {tasks.slice(1).length === 0 && <div className="empty">{translations[language].noUpcomingRooms}</div>}
               {tasks.slice(1).map((task) => (
                 <div className="mini-room" key={task.task_id}>
-                  <div>Room {task.room_number}</div>
+                  <div>{translations[language].room} {task.room_number}</div>
                   <div className="mini-battery">
-                    Battery change: {task.battery_change_required ? 'Yes' : 'No'}
+                    {translations[language].batteryChange} {task.battery_change_required ? translations[language].yes : translations[language].no}
                   </div>
                 </div>
               ))}
@@ -258,23 +370,133 @@ const Dashboard = () => {
           </aside>
 
           <aside className="mobile-stats">
-            <h3>Stats</h3>
+            <h3>{translations[language].stats}</h3>
             <div className="stats-list">
-              {!overall && <div className="empty">No stats</div>}
+              {!overall && <div className="empty">{translations[language].noStats}</div>}
 
               {overall && (
-                <div className="stat-card">
-                  <div>Total rooms cleaned: {fmt(overall.total_rooms_cleaned)}</div>
-                  <div>Avg rooms per shift: {fmt(overall.avg_rooms_per_shift_overall)}</div>
-                  <div>Avg time per room: {fmt(overall.avg_time_per_room_overall)} minutes</div>
-                  <div>Working hours: {fmt(overall.total_working_hours)}</div>
-                  <div>Active cleaning hours: {fmt(overall.total_active_cleaning_hours)}</div>
-                  <div>Completion rate: {fmt(overall.overall_completion_rate)}%</div>
-                  <div>Tasks incomplete: {fmt(overall.total_tasks_incomplete)}</div>
-                  <div>Emergency handled: {fmt(overall.total_emergency_tasks_handled)}</div>
-                  <div>Battery changes: {fmt(overall.total_battery_changes_performed)}</div>
-                  <div>On-time attendance: {fmt(overall.avg_on_time_shift_attendance)}%</div>
-                  <div>Break usage: {fmt(overall.avg_break_usage)} minutes</div>
+                <div className="stats-grid">
+                  {/* Performance Stats */}
+                  <div className="stats-group">
+                    <h4 
+                      className="stats-group-header" 
+                      onClick={() => toggleGroup('performance')}
+                    >
+                      {expandedGroups.performance ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      Performance
+                    </h4>
+                    {expandedGroups.performance && (
+                      <>
+                        <div className="stat-item">
+                          <Home className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].totalRoomsCleaned}</span>
+                            <span className="stat-value">{fmt(overall.total_rooms_cleaned)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <TrendingUp className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].avgRoomsPerShift}</span>
+                            <span className="stat-value">{fmt(overall.avg_rooms_per_shift_overall)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <Clock className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].avgTimePerRoom}</span>
+                            <span className="stat-value">{fmt(overall.avg_time_per_room_overall)} {translations[language].minutes}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <CheckCircle className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].completionRate}</span>
+                            <span className="stat-value">{fmt(overall.overall_completion_rate)}{translations[language].percent}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Time Stats */}
+                  <div className="stats-group">
+                    <h4 
+                      className="stats-group-header" 
+                      onClick={() => toggleGroup('time')}
+                    >
+                      {expandedGroups.time ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      Time
+                    </h4>
+                    {expandedGroups.time && (
+                      <>
+                        <div className="stat-item">
+                          <Clock className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].workingHours}</span>
+                            <span className="stat-value">{fmt(overall.total_working_hours)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <Clock className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].activeCleaningHours}</span>
+                            <span className="stat-value">{fmt(overall.total_active_cleaning_hours)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <Coffee className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].breakUsage}</span>
+                            <span className="stat-value">{fmt(overall.avg_break_usage)} {translations[language].minutes}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Issues & Special Tasks */}
+                  <div className="stats-group">
+                    <h4 
+                      className="stats-group-header" 
+                      onClick={() => toggleGroup('issues')}
+                    >
+                      {expandedGroups.issues ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      Issues & Tasks
+                    </h4>
+                    {expandedGroups.issues && (
+                      <>
+                        <div className="stat-item">
+                          <AlertTriangle className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].tasksIncomplete}</span>
+                            <span className="stat-value">{fmt(overall.total_tasks_incomplete)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <AlertTriangle className="stat-icon emergency-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].emergencyHandled}</span>
+                            <span className="stat-value">{fmt(overall.total_emergency_tasks_handled)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <Battery className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].batteryChanges}</span>
+                            <span className="stat-value">{fmt(overall.total_battery_changes_performed)}</span>
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <Calendar className="stat-icon" size={16} />
+                          <div className="stat-content">
+                            <span className="stat-label">{translations[language].onTimeAttendance}</span>
+                            <span className="stat-value">{fmt(overall.avg_on_time_shift_attendance)}{translations[language].percent}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
