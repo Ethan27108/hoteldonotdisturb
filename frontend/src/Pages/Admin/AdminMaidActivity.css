@@ -10,6 +10,17 @@
   margin-bottom: 18px;
 }
 
+.maid-section {
+  margin-bottom: 24px;
+}
+
+.maid-section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
 .maid-list {
   display: flex;
   flex-wrap: nowrap;

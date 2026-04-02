@@ -29,6 +29,16 @@ const translations = {
     workingHoursLabel: 'working_hours',
     editScheduleButton: 'Edit Schedule',
     loadingMaids: 'Loading maids...',
+    selectDay: 'Select Day',
+    mon: 'Monday',
+    tue: 'Tuesday',
+    wed: 'Wednesday',
+    thu: 'Thursday',
+    fri: 'Friday',
+    sat: 'Saturday',
+    sun: 'Sunday',
+    maidsWorkingOn: 'Maids working on',
+    allMaids: 'All Maids',
   },
   fr: {
     maidActivity: 'Activité des femmes de chambre',
@@ -54,6 +64,16 @@ const translations = {
     workingHoursLabel: 'working_hours',
     editScheduleButton: 'Modifier l\'horaire',
     loadingMaids: 'Chargement des femmes de chambre...',
+    selectDay: 'Sélectionner le jour',
+    mon: 'Lundi',
+    tue: 'Mardi',
+    wed: 'Mercredi',
+    thu: 'Jeudi',
+    fri: 'Vendredi',
+    sat: 'Samedi',
+    sun: 'Dimanche',
+    maidsWorkingOn: 'Femmes de chambre travaillant le',
+    allMaids: 'Toutes les femmes de chambre',
   },
 }
 
@@ -61,6 +81,7 @@ interface Maid {
   maid_id: string
   name: string
   user__is_active: boolean
+  shift_days?: string[]
 }
 
 interface Props {
@@ -79,6 +100,10 @@ const AdminMaidActivity: React.FC<Props> = ({ token, language }) => {
   const [showCreateMaid, setShowCreateMaid] = useState(false)
   const [showEditSchedule, setShowEditSchedule] = useState(false)
   const [maidProfile, setMaidProfile] = useState<any>(null)
+  const [selectedDay, setSelectedDay] = useState<string>(() => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    return days[new Date().getDay()]
+  })
 
   const fetchMaids = async () => {
     if (!token) {
@@ -97,7 +122,32 @@ const AdminMaidActivity: React.FC<Props> = ({ token, language }) => {
       })
 
       const data = await response.json()
-      setMaids(data.maids && Array.isArray(data.maids) ? data.maids : [])
+      const maidsData = data.maids && Array.isArray(data.maids) ? data.maids : []
+
+      // Fetch shift_days for each maid
+      const maidsWithShifts = await Promise.all(
+        maidsData.map(async (maid: Maid) => {
+          try {
+            const profileResp = await fetch('/api/admin/viewMaidProfile/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ maid_id: maid.maid_id }),
+            })
+            if (profileResp.ok) {
+              const profileData = await profileResp.json()
+              return { ...maid, shift_days: profileData.maid_profile.shift_days || [] }
+            }
+          } catch (err) {
+            console.error('Error fetching profile for maid', maid.maid_id, err)
+          }
+          return { ...maid, shift_days: [] }
+        })
+      )
+
+      setMaids(maidsWithShifts)
     } catch (e) {
       console.error('Error loading maids:', e)
       setMaids([])
@@ -119,98 +169,235 @@ const AdminMaidActivity: React.FC<Props> = ({ token, language }) => {
     )
   }
 
+  const filteredMaids = maids.filter(m => 
+    !m.shift_days || m.shift_days.length === 0 || m.shift_days.includes(selectedDay)
+  )
+
+  const getDayName = (dayCode: string) => {
+    const dayMap: { [key: string]: string } = {
+      Mon: t.mon,
+      Tue: t.tue,
+      Wed: t.wed,
+      Thu: t.thu,
+      Fri: t.fri,
+      Sat: t.sat,
+      Sun: t.sun,
+    }
+    return dayMap[dayCode] || dayCode
+  }
+
   return (
-    <div className="maid-activity">
+    <>
+      <div className="maid-activity">
       <header className="maid-header">
         <h2>{t.maidActivity}</h2>
-        <button className="btn primary" onClick={() => setShowCreateMaid(true)}>
-          <Plus size={16} /> {t.addMaid}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div>
+            <label htmlFor="day-select" style={{ marginRight: 8, fontSize: 14 }}>{t.selectDay}:</label>
+            <select
+              id="day-select"
+              value={selectedDay}
+              onChange={(e) => setSelectedDay(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                fontSize: '14px',
+                backgroundColor: '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="Mon">{t.mon}</option>
+              <option value="Tue">{t.tue}</option>
+              <option value="Wed">{t.wed}</option>
+              <option value="Thu">{t.thu}</option>
+              <option value="Fri">{t.fri}</option>
+              <option value="Sat">{t.sat}</option>
+              <option value="Sun">{t.sun}</option>
+            </select>
+          </div>
+          <button className="btn primary" onClick={() => setShowCreateMaid(true)}>
+            <Plus size={16} /> {t.addMaid}
+          </button>
+        </div>
       </header>
 
-      <div className="maid-list">
-        {maids.length === 0 ? (
-          <div className="empty">{t.noMaidsAvailable}</div>
-        ) : (
-          maids.map((m) => (
-            <div key={m.maid_id} className="maid-card">
-              <div className="maid-info">
-                <div className="maid-name">{m.name}</div>
-                <div className={`maid-status status-${m.user__is_active ? 'active' : 'inactive'}`}>
-                  {m.user__is_active ? t.active : t.inactive}
+      {/* Maids working on selected day */}
+      <div className="maid-section">
+        <h3>{t.maidsWorkingOn} {getDayName(selectedDay)}</h3>
+        <div className="maid-list">
+          {filteredMaids.length === 0 ? (
+            <div className="empty">{t.noMaidsAvailable}</div>
+          ) : (
+            filteredMaids.map((m) => (
+              <div key={m.maid_id} className="maid-card">
+                <div className="maid-info">
+                  <div className="maid-name">{m.name}</div>
+                  <div className={`maid-status status-${m.user__is_active ? 'active' : 'inactive'}`}>
+                    {m.user__is_active ? t.active : t.inactive}
+                  </div>
+                </div>
+                <div className="maid-actions">
+                  <button
+                    className="btn secondary"
+                    title={t.viewStats}
+                    onClick={async () => {
+                      setSelectedMaid(m)
+                      setShowStats(true)
+                      setLoadingStats(true)
+                      try {
+                        const resp = await fetch('/api/admin/maidStats/', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ maid_id: m.maid_id }),
+                        })
+
+                        if (resp.ok) {
+                          const data = await resp.json()
+                          setMaidStats(data)
+                        } else {
+                          setMaidStats({ error: 'Failed to load stats' })
+                        }
+                      } catch (err) {
+                        setMaidStats({ error: 'Network error' })
+                      } finally {
+                        setLoadingStats(false)
+                      }
+                    }}
+                  >
+                    <Eye size={16} />
+                  </button>
+
+                  <button 
+                    className="btn red" 
+                    title={t.removeMaid}
+                    onClick={async () => {
+                      if (!window.confirm(`${language === 'en' ? 'Are you sure you want to delete' : 'Êtes-vous sûr de vouloir supprimer'} ${m.name}? ${language === 'en' ? 'This action cannot be undone.' : 'Cette action ne peut pas être annulée.'}`)) {
+                        return;
+                      }
+
+                      try {
+                        const resp = await fetch('/api/admin/deactivateMaid/', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ maid_id: m.maid_id }),
+                        });
+
+                        if (resp.ok) {
+                          alert(language === 'en' ? 'Maid deleted successfully' : 'Femme de chambre supprimée avec succès');
+                          fetchMaids(); // Refresh the list
+                        } else {
+                          const error = await resp.json();
+                          alert(error.error || (language === 'en' ? 'Failed to delete maid' : 'Échec de la suppression de la femme de chambre'));
+                        }
+                      } catch (err) {
+                        console.error('Error deleting maid:', err);
+                        alert(language === 'en' ? 'Failed to delete maid' : 'Échec de la suppression de la femme de chambre');
+                      }
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
-              <div className="maid-actions">
-                <button
-                  className="btn secondary"
-                  title={t.viewStats}
-                  onClick={async () => {
-                    setSelectedMaid(m)
-                    setShowStats(true)
-                    setLoadingStats(true)
-                    try {
-                      const resp = await fetch('/api/admin/maidStats/', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          Authorization: `Bearer ${token}`,
-                        },
-                        body: JSON.stringify({ maid_id: m.maid_id }),
-                      })
+            ))
+          )}
+        </div>
+      </div>
 
-                      if (resp.ok) {
-                        const data = await resp.json()
-                        setMaidStats(data)
-                      } else {
-                        setMaidStats({ error: 'Failed to load stats' })
+      {/* All Maids */}
+      <div className="maid-section">
+        <h3>{t.allMaids}</h3>
+        <div className="maid-list">
+          {maids.length === 0 ? (
+            <div className="empty">{t.noMaidsAvailable}</div>
+          ) : (
+            maids.map((m) => (
+              <div key={`all-${m.maid_id}`} className="maid-card">
+                <div className="maid-info">
+                  <div className="maid-name">{m.name}</div>
+                  <div className={`maid-status status-${m.user__is_active ? 'active' : 'inactive'}`}>
+                    {m.user__is_active ? t.active : t.inactive}
+                  </div>
+                </div>
+                <div className="maid-actions">
+                  <button
+                    className="btn secondary"
+                    title={t.viewStats}
+                    onClick={async () => {
+                      setSelectedMaid(m)
+                      setShowStats(true)
+                      setLoadingStats(true)
+                      try {
+                        const resp = await fetch('/api/admin/maidStats/', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ maid_id: m.maid_id }),
+                        })
+
+                        if (resp.ok) {
+                          const data = await resp.json()
+                          setMaidStats(data)
+                        } else {
+                          setMaidStats({ error: 'Failed to load stats' })
+                        }
+                      } catch (err) {
+                        setMaidStats({ error: 'Network error' })
+                      } finally {
+                        setLoadingStats(false)
                       }
-                    } catch (err) {
-                      setMaidStats({ error: 'Network error' })
-                    } finally {
-                      setLoadingStats(false)
-                    }
-                  }}
-                >
-                  <Eye size={16} />
-                </button>
+                    }}
+                  >
+                    <Eye size={16} />
+                  </button>
 
-                <button 
-                  className="btn red" 
-                  title={t.removeMaid}
-                  onClick={async () => {
-                    if (!window.confirm(`${language === 'en' ? 'Are you sure you want to delete' : 'Êtes-vous sûr de vouloir supprimer'} ${m.name}? ${language === 'en' ? 'This action cannot be undone.' : 'Cette action ne peut pas être annulée.'}`)) {
-                      return;
-                    }
-
-                    try {
-                      const resp = await fetch('/api/admin/deactivateMaid/', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          Authorization: `Bearer ${token}`,
-                        },
-                        body: JSON.stringify({ maid_id: m.maid_id }),
-                      });
-
-                      if (resp.ok) {
-                        alert(language === 'en' ? 'Maid deleted successfully' : 'Femme de chambre supprimée avec succès');
-                        fetchMaids(); // Refresh the list
-                      } else {
-                        const error = await resp.json();
-                        alert(error.error || (language === 'en' ? 'Failed to delete maid' : 'Échec de la suppression de la femme de chambre'));
+                  <button 
+                    className="btn red" 
+                    title={t.removeMaid}
+                    onClick={async () => {
+                      if (!window.confirm(`${language === 'en' ? 'Are you sure you want to delete' : 'Êtes-vous sûr de vouloir supprimer'} ${m.name}? ${language === 'en' ? 'This action cannot be undone.' : 'Cette action ne peut pas être annulée.'}`)) {
+                        return;
                       }
-                    } catch (err) {
-                      console.error('Error deleting maid:', err);
-                      alert(language === 'en' ? 'Failed to delete maid' : 'Échec de la suppression de la femme de chambre');
-                    }
-                  }}
-                >
-                  <Trash2 size={16} />
-                </button>
+
+                      try {
+                        const resp = await fetch('/api/admin/deactivateMaid/', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ maid_id: m.maid_id }),
+                        });
+
+                        if (resp.ok) {
+                          alert(language === 'en' ? 'Maid deleted successfully' : 'Femme de chambre supprimée avec succès');
+                          fetchMaids(); // Refresh the list
+                        } else {
+                          const error = await resp.json();
+                          alert(error.error || (language === 'en' ? 'Failed to delete maid' : 'Échec de la suppression de la femme de chambre'));
+                        }
+                      } catch (err) {
+                        console.error('Error deleting maid:', err);
+                        alert(language === 'en' ? 'Failed to delete maid' : 'Échec de la suppression de la femme de chambre');
+                      }
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
 
       {/* MAID STATS MODAL */}
@@ -447,6 +634,7 @@ const AdminMaidActivity: React.FC<Props> = ({ token, language }) => {
 
               if (response.ok) {
                 alert(language === 'en' ? 'Schedule updated successfully!' : 'Horaire mis à jour avec succès!');
+                fetchMaids(); // Refresh the list to update shift_days
                 // Refresh maid stats if still viewing
                 if (showStats) {
                   const resp = await fetch('/api/admin/maidStats/', {
@@ -474,7 +662,9 @@ const AdminMaidActivity: React.FC<Props> = ({ token, language }) => {
           }}
         />
       )}
+
     </div>
+    </>
   )
 }
 
