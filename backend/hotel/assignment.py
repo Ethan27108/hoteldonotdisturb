@@ -209,7 +209,13 @@ def choose_best_maid_for_room(room, now=None):
         room_floor = room.floor.floor_number if room.floor else 0
 
         if current_floor is None:
-            distance = 999  # no known floor, treat as far
+            # Maid has no recent task history → no known floor.
+            # Treat unknown location as a moderate distance instead of an extreme value (999).
+            # Using a huge sentinel (999) makes unknown maids always lose to any maid
+            # with a known location even if that maid is heavily loaded. Use a
+            # reasonable default so load (pending_count) remains meaningful.
+            distance = 0
+            print(f"[choose_best_maid_for_room]   maid {maid.maid_id} has no known floor; using distance={distance}")
         else:
             distance = abs(current_floor - room_floor)
 
