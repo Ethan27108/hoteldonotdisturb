@@ -281,7 +281,7 @@ const AdminMaidActivity: React.FC<Props> = ({ token, language }) => {
                         <table className="stats-table">
                           <tbody>
                             {latest ? (
-                              Object.entries(latest).filter(([k]) => k !== 'date').map(([k, v]) => (
+                              Object.entries(latest).filter(([k]) => k !== 'date' && k !== 'battery_changes_performed').map(([k, v]) => (
                                 <tr key={k}>
                                   <td className="key">{k.replace(/_/g, ' ')}</td>
                                   <td className="value">{fmt(k, v)}</td>
