@@ -84,7 +84,6 @@ html,body,#root{height:100%}
 }
 .room-header{ display:flex; justify-content:space-between; align-items:center; }
 .room-header h2{ margin:0; font-size:1.15rem; }
-.battery{ color:var(--muted); font-size:0.95rem; }
 
 /* comment box */
 .comment-box{

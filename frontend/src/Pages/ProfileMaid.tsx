@@ -62,7 +62,6 @@ interface CleaningLog {
   assigned_time: string
   start_time: string
   finish_time: string
-  battery_changed: boolean
   created_at: string
 }
 

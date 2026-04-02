@@ -7,7 +7,6 @@ import {
   TrendingUp, 
   CheckCircle, 
   AlertTriangle, 
-  Battery, 
   Calendar, 
   Coffee,
   ChevronDown,
@@ -20,7 +19,6 @@ const translations = {
     profile: 'Profile',
     logout: 'Logout',
     room: 'Room',
-    batteryChangeRequired: 'Battery change required:',
     yes: 'Yes',
     no: 'No',
     addComment: 'Add comment about this room...',
@@ -29,7 +27,6 @@ const translations = {
     noCurrentRoom: 'No current room assigned',
     nextRooms: 'Next Rooms',
     noUpcomingRooms: 'No upcoming rooms',
-    batteryChange: 'Battery change:',
     stats: 'Stats',
     noStats: 'No stats',
     totalRoomsCleaned: 'Total rooms cleaned:',
@@ -40,7 +37,6 @@ const translations = {
     completionRate: 'Completion rate:',
     tasksIncomplete: 'Tasks incomplete:',
     emergencyHandled: 'Emergency handled:',
-    batteryChanges: 'Battery changes:',
     onTimeAttendance: 'On-time attendance:',
     breakUsage: 'Break usage:',
     minutes: 'minutes',
@@ -53,7 +49,6 @@ const translations = {
     profile: 'Profil',
     logout: 'Déconnexion',
     room: 'Chambre',
-    batteryChangeRequired: 'Changement de batterie requis:',
     yes: 'Oui',
     no: 'Non',
     addComment: 'Ajouter un commentaire sur cette chambre...',
@@ -62,7 +57,6 @@ const translations = {
     noCurrentRoom: 'Aucune chambre actuelle assignée',
     nextRooms: 'Chambres suivantes',
     noUpcomingRooms: 'Aucune chambre à venir',
-    batteryChange: 'Changement de batterie:',
     stats: 'Statistiques',
     noStats: 'Aucune statistique',
     totalRoomsCleaned: 'Total des chambres nettoyées:',
@@ -73,7 +67,6 @@ const translations = {
     completionRate: 'Taux d\'achèvement:',
     tasksIncomplete: 'Tâches incomplètes:',
     emergencyHandled: 'Urgences traitées:',
-    batteryChanges: 'Changements de batterie:',
     onTimeAttendance: 'Présence à l\'heure:',
     breakUsage: 'Utilisation des pauses:',
     minutes: 'minutes',
@@ -94,7 +87,6 @@ interface Task {
   assigned_time: string
   start_time: string | null
   finish_time: string | null
-  battery_change_required: boolean
 }
 
 interface Stats {
@@ -108,7 +100,6 @@ interface Stats {
   completion_rate: number
   tasks_incomplete: number
   emergency_tasks_handled: number
-  battery_changes_performed: number
   on_time_shift_attendance: number
   break_usage: number
 }
@@ -315,10 +306,6 @@ const Dashboard = () => {
             <>
               <div className="room-header">
                 <h2>{translations[language].room} {tasks[0].room_number}</h2>
-                <div className="battery">
-                  {translations[language].batteryChangeRequired}{' '}
-                  {tasks[0].battery_change_required ? translations[language].yes : translations[language].no}
-                </div>
               </div>
 
               <textarea
@@ -361,9 +348,6 @@ const Dashboard = () => {
               {tasks.slice(1).map((task) => (
                 <div className="mini-room" key={task.task_id}>
                   <div>{translations[language].room} {task.room_number}</div>
-                  <div className="mini-battery">
-                    {translations[language].batteryChange} {task.battery_change_required ? translations[language].yes : translations[language].no}
-                  </div>
                 </div>
               ))}
             </div>
@@ -478,13 +462,6 @@ const Dashboard = () => {
                           <div className="stat-content">
                             <span className="stat-label">{translations[language].emergencyHandled}</span>
                             <span className="stat-value">{fmt(overall.total_emergency_tasks_handled)}</span>
-                          </div>
-                        </div>
-                        <div className="stat-item">
-                          <Battery className="stat-icon" size={16} />
-                          <div className="stat-content">
-                            <span className="stat-label">{translations[language].batteryChanges}</span>
-                            <span className="stat-value">{fmt(overall.total_battery_changes_performed)}</span>
                           </div>
                         </div>
                         <div className="stat-item">
