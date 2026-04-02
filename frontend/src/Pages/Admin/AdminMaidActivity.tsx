@@ -191,36 +191,23 @@ const AdminMaidActivity: React.FC<Props> = ({ token, language }) => {
       <div className="maid-activity">
       <header className="maid-header">
         <h2>{t.maidActivity}</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div>
-            <label htmlFor="day-select" style={{ marginRight: 8, fontSize: 14 }}>{t.selectDay}:</label>
-            <select
-              id="day-select"
-              value={selectedDay}
-              onChange={(e) => setSelectedDay(e.target.value)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '6px',
-                border: '1px solid #d1d5db',
-                fontSize: '14px',
-                backgroundColor: '#fff',
-                cursor: 'pointer',
-              }}
-            >
-              <option value="Mon">{t.mon}</option>
-              <option value="Tue">{t.tue}</option>
-              <option value="Wed">{t.wed}</option>
-              <option value="Thu">{t.thu}</option>
-              <option value="Fri">{t.fri}</option>
-              <option value="Sat">{t.sat}</option>
-              <option value="Sun">{t.sun}</option>
-            </select>
-          </div>
-          <button className="btn primary" onClick={() => setShowCreateMaid(true)}>
-            <Plus size={16} /> {t.addMaid}
-          </button>
-        </div>
+        <button className="btn primary" onClick={() => setShowCreateMaid(true)}>
+          <Plus size={16} /> {t.addMaid}
+        </button>
       </header>
+
+      {/* Day Selector */}
+      <div className="day-selector">
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+          <button
+            key={day}
+            className={`day-button ${selectedDay === day ? 'active' : ''}`}
+            onClick={() => setSelectedDay(day)}
+          >
+            {day === 'Mon' ? t.mon : day === 'Tue' ? t.tue : day === 'Wed' ? t.wed : day === 'Thu' ? t.thu : day === 'Fri' ? t.fri : day === 'Sat' ? t.sat : t.sun}
+          </button>
+        ))}
+      </div>
 
       {/* Maids working on selected day */}
       <div className="maid-section">
