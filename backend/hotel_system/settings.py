@@ -29,7 +29,6 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "172.20.10.8",   # <--- ADD THIS (your computer's Wi-Fi IP)
-    "10.147.119.68"
 ]
 
 
