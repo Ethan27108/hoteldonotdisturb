@@ -10,6 +10,37 @@
   margin-bottom: 18px;
 }
 
+.day-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.day-button {
+  padding: 10px 16px;
+  border: 2px solid #cbd5e1;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.day-button:hover {
+  border-color: #94a3b8;
+  color: #475569;
+}
+
+.day-button.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
 .maid-section {
   margin-bottom: 24px;
 }
