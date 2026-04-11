@@ -969,7 +969,8 @@ class AdminAddRoomView(APIView):
             pos_y=pos_y,
         )
 
-
+        if backend_status == "dirty":
+            assign_room_to_best_maid(room)
         return JsonResponse(
             {
                 "message": "Room created successfully.",
@@ -1074,7 +1075,7 @@ class AdminEditRoomView(APIView):
                 {"error": f"Room {final_room_number} already exists on floor {final_floor.floor_number}."},
                 status=409
             )
-
+        old_status = room.status
         room.floor = final_floor
         room.room_number = final_room_number
         if new_status is not None:
@@ -1092,7 +1093,14 @@ class AdminEditRoomView(APIView):
             except (TypeError, ValueError):
                 return JsonResponse({"error": "pos_y must be an integer if provided."}, status=400)
 
+        
+
         room.save()
+
+        # If room just became dirty → assign task
+        if new_status == "dirty" and old_status != "dirty":
+            assign_room_to_best_maid(room)
+
         rebalance_all_pending_tasks()
 
         return JsonResponse(
