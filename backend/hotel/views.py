@@ -2488,7 +2488,21 @@ class ButtonRoomStatusUpdateView(APIView):
             changed_by="guest",
         )
 
-        if new_status == "dirty":
+        # 🚫 CASE: Room becomes DO NOT DISTURB
+        if new_status and new_status.strip().lower() in ["do_not_disturb", "dnd"]:
+            in_progress_exists = Task.objects.filter(
+                room_id=room.room_id,
+                status="in_progress"
+            ).exists()
+
+            if not in_progress_exists:
+                deleted_count = Task.objects.filter(
+                    room_id=room.room_id,
+                    status="pending"
+                ).delete()[0]
+                print(f"Deleted {deleted_count} pending tasks for room {room.room_number}")
+
+        elif new_status == "dirty":
             
             assign_room_to_best_maid(room, assignment_type="auto")
         elif new_status == "emergency_clean":
