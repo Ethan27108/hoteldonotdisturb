@@ -37,7 +37,7 @@ def mark_stale_rooms_dirty(threshold_hours=48, now=None):
     for room in rooms:
 
         # Skip rooms that should not be auto-marked dirty
-        if room.status in ["cleaning_in_progress", "emergency_clean", "dirty"]:
+        if room.status in ["cleaning_in_progress", "emergency_clean", "dirty", "do_not_disturb"]:
             continue
 
         # Get the last cleaning log for this room

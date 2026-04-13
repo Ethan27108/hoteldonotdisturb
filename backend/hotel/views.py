@@ -1075,7 +1075,9 @@ class AdminEditRoomView(APIView):
                 {"error": f"Room {final_room_number} already exists on floor {final_floor.floor_number}."},
                 status=409
             )
+
         old_status = room.status
+
         room.floor = final_floor
         room.room_number = final_room_number
         if new_status is not None:
@@ -1093,14 +1095,42 @@ class AdminEditRoomView(APIView):
             except (TypeError, ValueError):
                 return JsonResponse({"error": "pos_y must be an integer if provided."}, status=400)
 
-        
-
         room.save()
 
-        # If room just became dirty → assign task
+        # ============================================
+        # 🚫 CASE: Room becomes DO NOT DISTURB
+        # ============================================
+        if new_status and new_status.strip().lower() in ["do_not_disturb", "dnd"]:
+
+            print(f"DND triggered for room {room.room_number}")
+
+            in_progress_exists = Task.objects.filter(
+                room_id=room.room_id,
+                status="in_progress"
+            ).exists()
+
+            if not in_progress_exists:
+                deleted_count = Task.objects.filter(
+                    room_id=room.room_id,
+                    status="pending"
+                ).delete()[0]
+
+                print(f"Deleted {deleted_count} pending tasks for room {room.room_number}")
+            else:
+                print(f"Room {room.room_number} has task in progress → not deleting")
+
+            # 🚨 Do NOT rebalance after DND
+            return JsonResponse({"message": "Room updated to DND"}, status=200)
+
+        # ============================================
+        # 🧹 CASE: Room becomes DIRTY
+        # ============================================
         if new_status == "dirty" and old_status != "dirty":
             assign_room_to_best_maid(room)
 
+        # ============================================
+        # 🔄 Other cases → rebalance
+        # ============================================
         rebalance_all_pending_tasks()
 
         return JsonResponse(
